@@ -36,7 +36,8 @@ remove_outliers <- function(x, na.rm = TRUE, ...) {
 ```
 
 ```{r, include=FALSE}
-students <- fread("/home/vovan/Desktop/data/students.csv") %>% group_by(course_id) %>%
+wd <- getwd()
+students <- fread("../data/students.csv") %>% group_by(course_id) %>%
   mutate(vis_p = remove_outliers(vis_p), duration = remove_outliers(duration))  %>% filter(duration < 750)
 students$vis_b <-factor(students$vis_b)
 students$spec_b <-factor(students$spec_b)
