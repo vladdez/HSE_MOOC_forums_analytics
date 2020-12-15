@@ -1,0 +1,237 @@
+---
+title: "Что влияет на дисперсию просмотренных страниц на форуме?"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+library(dplyr)
+library(data.table)
+library(readr)
+library(stringr)
+library(janitor)
+library(lme4)
+library(sjPlot)
+library(broom)
+library(ggplot2)
+library(tidyr)
+library(pscl)
+library(MASS)
+library(popbio)
+library(arm)
+library(broom)
+library(caret)
+library(vcd)
+library(gmodels)
+
+remove_outliers <- function(x, na.rm = TRUE, ...) {
+  qnt <- quantile(x, probs=c(.25, .75), na.rm = na.rm, ...)
+  H <- 1.5 * IQR(x, na.rm = na.rm)
+  y <- x
+  y[x < (qnt[1] - H)] <- NA
+  y[x > (qnt[2] + H)] <- NA
+  y
+}
+
+```
+
+```{r, include=FALSE}
+students <- fread("/home/vovan/Desktop/data/students.csv") %>% group_by(course_id) %>%
+  mutate(vis_p = remove_outliers(vis_p), duration = remove_outliers(duration))  %>% filter(duration < 750)
+students$vis_b <-factor(students$vis_b)
+students$spec_b <-factor(students$spec_b)
+
+short <- students %>% distinct(course_slug, spec_b, field, is_prog)
+table(short$is_prog)
+```
+
+
+## 1. Об отчете
+
+### Исследовательские вопросы
+
+  1. Какая доля студентов посещает форум?
+  2. Сколько страниц форума в среднем посещают студенты?
+  3. Как отличается среднее посещение форума на курсах из специализаций и не из специализаций?
+  4. Как отличается среднее посещение форума на курсах с заданиями по программированию и без них?
+
+### Содержание отчета
+ 
+  1. Вероятность посещения форума студентом.
+  2. Среднее количество посещенных страниц.
+  3. Влияние специализации на посещение форума.
+  4. Влияние специализации на количество посещенных страниц форума.
+  5. Влияние специализации и программирования на количество посещенных страниц форума.
+
+### Описание баз данных и ее переменных
+
+- Все рассматриваемые студенты закончили курс.
+- Исключен преподавательский состав.
+- Исключены два курса, в которых все окончившие курс получали оценку 100 баллов.
+- Два курса (discrete-maths и python-basic) найти не удалось.
+- Анализируем 56 курсов.
+- 34 индивидуальных курса и 20 курсов из специализаций.
+- В 9 курсах есть задания по программированию (см. переменную is_prog).
+
+### Переменные
+
+- **Посещение форума.**
+  - ***vis_b*** - посещал форум или нет;
+  - ***vis_p*** - количество посещенных страниц форума;
+- **Тип курса.**     
+  - ***spec_b*** - индивидуальный курс или курс из специализации;
+  - ***is_prog*** - есть задания по программированию в курсе или нет;
+
+
+## 2. Анализ дисперсий
+
+### 2.1 Вероятность посещения форума студентом
+
+
+```{r, echo=FALSE}
+m0 <- glmer(vis_b ~ 1 + (1|course_id),
+            family = binomial,
+            students)
+summary(m0)
+```
+
+```{r, include=FALSE}
+a1 <- AIC(m0)
+sd <- as.numeric(data.frame(VarCorr(m0))[5])
+m0 <- display(m0)
+variance1 <- sd ^2
+coef = m0$coef
+
+```
+
+
+```{r, echo=FALSE}
+
+t <- table(students$vis_b)
+v <- round((t[2]/(t[1] + t[2])), digits = 2)
+c <- c(round(invlogit(coef - sd), digits = 2), round(invlogit(coef + sd), digits = 2))
+cat(sprintf("\nМетод 1. Вероятность посещения форума на среднем курсе равно %d%%\n", v *100))
+cat(sprintf("\nМетод 2. Математическое ожидание посещения форума на среднем курсе равно %.f%%\n", round(invlogit(coef), digits = 2) *100))
+cat(sprintf("Эта вероятность будет колебаться между: %d%% и %d%%\n", c[1] *100, c[2] *100))
+cat(sprintf("Необъясненная дисперсия (variance): %f\n", variance1))
+```
+
+### 2.2 Количество страниц в среднем посещенных студентом
+
+
+```{r, echo=FALSE}
+#contrasts(students$vis_b)
+m0 <- glmer.nb(vis_p ~ 1 + (1|course_id),
+            students)
+summary(m0)
+
+
+```
+
+```{r, include=FALSE}
+a2 <- AIC(m0)
+sd <- as.numeric(data.frame(VarCorr(m0))[5])
+m0 <- display(m0)
+variance2 <- sd ^2
+coef = m0$coef
+c <- c(round(exp(coef - sd), digits = 0), round(exp(coef + sd), digits = 0))
+```
+
+```{r , echo=FALSE}
+cat(sprintf("\nМетод 1. Медиана и стандартное отклонение для посещений страниц: %d и %d\n", round(median(students$vis_p, na.rm = TRUE), digit = 0), round(sd(students$vis_p, na.rm = TRUE), digit = 0)))
+
+cat(sprintf("\nМетод 2. Среднее количество страниц, которые посещают студенты на форуме среднего курса: %d\n", round(exp(coef), digit = 0)))
+cat(sprintf("Это количество колеблется между: %d и %d страницами\n", c[1], c[2]))
+cat(sprintf("Необъясненная дисперсия (variance): %f\n", variance2))
+```
+
+### 2.3 Влияние специализации на посещение форума студентом
+
+
+```{r}
+#contrasts(students$spec_b)
+m0 <- glmer(vis_b ~ spec_b +(1|course_id),
+            family = binomial,
+            students)
+summary(m0)
+
+```
+
+
+```{r, include=FALSE}
+a3 <- AIC(m0)
+sd <- as.numeric(data.frame(VarCorr(m0))[5])
+m0 <- display(m0)
+variance3 <- sd ^2
+coef = m0$coef
+```
+
+
+```{r , echo=FALSE}
+
+c <- c(round(invlogit(coef - sd), digits = 2), round(invlogit(coef + sd), digits = 2))
+cat(sprintf("\nВероятность, посещения форума на индивидуальном курсе: %.f%%\n", round(invlogit(coef[1]), digit = 2)*100))
+cat(sprintf("Вероятность, посещения форума на курсе специализации: %.f%%\n", round(invlogit(coef[1] + coef[2]), digits = 2)*100))
+cat(sprintf("AIC модели без предиктора - %.2f и AIC с предиктором - %.2f\n", a1, a3))
+cat(sprintf("Необъясненная дисперсия модели без предиктора - %.3f и необъясненная дисперсия с предиктором - %.3f\n", variance1, variance3))
+```
+
+### 2.4 Влияние специализации на количество страниц посещенных студентом
+
+
+```{r}
+
+m0 <- glmer.nb(vis_p ~ spec_b +(1|course_id),
+            students)
+summary(m0)
+```
+
+
+```{r, include=FALSE}
+a4 <- AIC(m0)
+sd <- as.numeric(data.frame(VarCorr(m0))[5])
+m0 <- display(m0)
+variance4 <- sd ^2
+coef = m0$coef
+```
+
+```{r , echo=FALSE}
+
+cat(sprintf("\nСреднее количество страниц на форуме, которые студенты посещают на индивидуальном курсе: %d\n", round(exp(coef[1]), digit = 0)))
+cat(sprintf("Среднее количество страниц на форуме, которые студенты посещают на курсе из специализации: %d \n", round(exp(coef[1] +coef[2]), digit = 0)))
+cat(sprintf("AIC модели без предиктора - %.2f и AIC с предиктором - %.2f\n", a2, a4))
+cat(sprintf("Необъясненная дисперсия модели без предиктора - %.2f и необъясненная дисперсия с предиктором - %.2f\n", variance2, variance4))
+```
+
+### 2.5 Влияние специализации и программирования на количество страниц посещенных студентом
+
+
+```{r}
+
+m0 <- glmer.nb(vis_p ~ spec_b + is_prog +(1|course_id),
+            students)
+summary(m0)
+```
+```{r, include=FALSE}
+a5 <- AIC(m0)
+sd <- as.numeric(data.frame(VarCorr(m0))[5])
+m0 <- display(m0)
+variance5 <- sd ^2
+coef = m0$coef
+```
+
+```{r , echo=FALSE}
+
+cat(sprintf("\nСреднее количество страниц на форуме, которые студенты посещают на индивидуальном курсе: %d\n", round(exp(coef[1]), digit = 0)))
+cat(sprintf("Среднее количество страниц на форуме, которые студенты посещают на курсе из специализации: %d \n", round(exp(coef[1] +coef[2]), digit = 0)))
+cat(sprintf("Среднее количество страниц на форуме, которые студенты посещают на курсе с программированием: %d \n", round(exp(coef[1] +coef[3]), digit = 0)))
+cat(sprintf("AIC модели без предиктора - %.2f и AIC с двумя предикторами - %.2f\n", a2, a5))
+cat(sprintf("Необъясненная дисперсия модели без предиктора - %.2f и необъясненная дисперсия с предикторами - %.2f\n", variance2, variance5))
+```
+
+## Выводы
+
+  1. 60-70 % студентов посещают курс
+  2. В среднем студенты посещают 5-8 страниц форума
+  3. На курсах специализаций студенты посещают значимо больше страниц — 7-12 страниц.
+  4. На курсах с программированием студенты посещают значимо больше страниц —  26.
