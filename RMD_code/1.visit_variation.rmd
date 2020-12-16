@@ -1,5 +1,5 @@
 ---
-title: "Что влияет на дисперсию просмотренных страниц на форуме?"
+title: "Дисперсия посещений форума"
 output: html_document
 ---
 
@@ -8,21 +8,11 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 library(dplyr)
 library(data.table)
 library(readr)
-library(stringr)
-library(janitor)
 library(lme4)
-library(sjPlot)
 library(broom)
 library(ggplot2)
 library(tidyr)
-library(pscl)
-library(MASS)
-library(popbio)
 library(arm)
-library(broom)
-library(caret)
-library(vcd)
-library(gmodels)
 
 remove_outliers <- function(x, na.rm = TRUE, ...) {
   qnt <- quantile(x, probs=c(.25, .75), na.rm = na.rm, ...)

@@ -1,0 +1,231 @@
+---
+title: "Оценка за курс"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+library(dplyr)
+library(readr)
+library(data.table)
+library(lme4)
+library(ggplot2)
+library(tidyr)
+library(arm)
+library(broom)
+library(gmodels)
+
+remove_outliers <- function(x, na.rm = TRUE, ...) {
+  qnt <- quantile(x, probs=c(.25, .75), na.rm = na.rm, ...)
+  H <- 1.5 * IQR(x, na.rm = na.rm)
+  y <- x
+  y[x < (qnt[1] - H)] <- NA
+  y[x > (qnt[2] + H)] <- NA
+  y
+}
+
+```
+
+```{r, include=FALSE}
+wd <- getwd()
+students <- fread("../data/students.csv") %>% group_by(course_id) %>%
+  mutate(grade_norm = round((course_grade_overall-min(course_grade_overall))/(max(course_grade_overall)-min(course_grade_overall)), digits = 2), grade_dum = case_when(
+    course_grade_overall >= median(course_grade_overall) ~ 1,
+    course_grade_overall < median(course_grade_overall)  ~ 0
+), vis_p = remove_outliers(vis_p), duration = remove_outliers(duration)) %>% mutate(grade_norm = round(grade_norm, digits = 2)) %>%  mutate(grade_norm = remove_outliers(grade_norm))
+students$grade_dum <-factor(students$grade_dum)
+students$vis_b <-factor(students$vis_b)
+students$spec_b <-factor(students$spec_b)
+
+inv_logit <- function (x) {1/(1+exp(-x))}
+```
+
+
+## 1. Об отчете
+
+### Исследовательские вопросы
+
+  1. Как посещение форума влияет на оценку студента?
+  2. Как количество посещенных страниц форума влияет на оценку студента?
+
+### Содержание отчета
+ 
+  1. Влияние посещения форума на оценку студента
+  2. Влияние количества посещенных страниц на оценку студента
+
+### Описание баз данных и ее переменных
+
+- Все рассматриваемые студенты закончили курс.
+- Исключен преподавательский состав.
+- Исключены два курса, в которых все окончившие курс получали оценку 100 баллов.
+- Два курса (discrete-maths и python-basic) найти не удалось.
+- Анализируем 56 курсов.
+- 34 индивидуальных курса и 20 курсов из специализаций.
+- В 9 курсах есть задания по программированию (см. переменную is_prog).
+
+### Переменные
+- **Посещение форума.**
+  - ***vis_b*** - посещал форум или нет;
+  - ***vis_p*** - количество посещенных страниц форума;
+- **Тип курса.**     
+  - ***spec_b*** - индивидуальный курс или курс из специализации;
+  - ***is_prog*** - есть задания по программированию в курсе или нет;
+- **Оценка**
+  - ***grade_dum*** – выше медианы по курсу ("1") / ниже медианы по курсу ("0")
+
+
+### 1. Форум и оценка
+### 1.1 Влияние посещения форума на оценку студента
+
+#### Выбор статистических инструментов:
+
+  1. Следует использовать хи-квадрат, поскольку обе переменные категориальные
+  2. Для расчетов нужно построить перекрестную таблицу
+
+```{r}
+students$grade_dum <- relevel(students$grade_dum, "1")
+tab <- table(students$vis_b, students$grade_dum )
+tab2 <- students %>% group_by(vis_b, grade_dum) %>%  summarise(n = n()) %>% group_by(vis_b) %>% spread(vis_b, n) %>% rename(visited = "0", not_visited = "1")
+tab2
+```
+
+#### Визуализация перекрестной таблицы двумя способами:
+
+```{r, echo=FALSE}
+
+students %>% ggplot(aes(factor(vis_b), ..count..)) + geom_bar(aes(fill = grade_dum), position = "dodge") + ggtitle("Оценки и посещение форума") + labs(x="Посещали форум или нет?", y = "Число студентов", fill = "Оценка") + scale_x_discrete(labels=c("Нет", "Да")) + scale_fill_discrete(labels=c("Ниже медианы", "Выше медианы"))  +  theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(students) +
+  aes(x = grade_dum, fill = vis_b) +
+  geom_bar() +
+  scale_fill_hue() +
+  theme_minimal() + ggtitle("Оценки и посещение форума") + labs(x="Посещали форум или нет?", y = "Число студентов", fill = "Оценка")  + scale_x_discrete(labels=c("Нет", "Да")) + scale_fill_discrete(labels=c("Ниже медианы", "Выше медианы"))  +  theme(plot.title = element_text(hjust = 0.5))
+```
+
+#### Результат теста хи-квадрат:
+
+```{r, include =FALSE}
+# Chi-squared test of independence
+ct <- CrossTable(tab, fisher = TRUE, chisq = TRUE, expected = TRUE, sresid = TRUE)
+chisq <- chisq.test(tab)
+```
+
+```{r}
+chisq
+```
+
+
+```{r , echo=FALSE}
+cat(sprintf("Существует значимая связь между оценками и посещением форума: X-squared = %.2f, p-value = %.2f.\n", round(chisq$statistic, digit = 2), round(chisq$p.value, digit = 2)))
+
+```
+
+Рассчитаем отношение шансов:
+
+```{r}
+visited_high <- tab2$visited[1]
+visited_low <- tab2$visited[2]
+high_grade_visited <- visited_high / visited_low
+
+not_visited_high <- tab2$not_visited[1]
+not_visited_low <- tab2$not_visited[2]
+high_grade_not_visited  <- not_visited_high / not_visited_low
+high_grade <- high_grade_visited / high_grade_not_visited
+high_grade
+
+```
+
+```{r , echo=FALSE}
+cat(sprintf("Шанс получения высокой оценки после посещения форума равен %.3f (%.3f и %.3f) к 1, где 1 - это шанс получения высокой оценки без посещения форума\n* высокая оценка = оценка выше медианы по курсу \n", round(ct$fisher.ts$estimate, digit = 3),  round(ct$fisher.ts$conf.int[1], digit = 3), round(ct$fisher.ts$conf.int[2], digit = 3)))
+
+```
+
+### 1.2 Влияние количества посещенных страниц на оценку студента
+
+#### Выбор статистических инструментов:
+
+  1. Следует использовать логистическую регрессию поскольку зависимая переменная имеет только два возможных исхода
+  2. Для расчетов нужно построить перекрестную таблицу
+
+
+```{r}
+students$grade_dum <- relevel(students$grade_dum, "0")
+m1 <-  glm(grade_dum ~ vis_p, family = "binomial", students)
+summary(m1)
+```
+
+```{r}
+prob0<- invlogit(m1$coefficients[1])
+prob1<- invlogit(m1$coefficients[1] + m1$coefficients[2])
+prob2<- invlogit(m1$coefficients[1] + m1$coefficients[2] * 50)
+```
+
+
+#### Результаты логистической регрессии:
+
+```{r , echo=FALSE}
+
+cat(sprintf("Вероятность получить высокую оценку студентом, который ни разу не посещал форум: %.4f.\n", prob0))
+cat(sprintf("Вероятность получить высокую оценку студентом, который один раз посещал форум: %.4f. \n", prob1))
+
+```
+
+Расчет отношения шансов:
+
+```{r}
+odds0 <- prob0/(1-prob0)
+odds1 <- prob1/(1-prob1)
+odds2 <- prob2/(1-prob2)
+ratio = odds1/odds0
+# похожие значения можно получить используя exp(m1$coefficients)
+ratio_CI <- exp(confint(m1))
+```
+
+```{r , echo=FALSE}
+
+cat(sprintf("Шанс получить высокую оценку если не посещал форум: %.4f к 1.\n", odds0))
+cat(sprintf("Шанс получить высокую оценку после посещения одной страницы форума: %.4f к 1.\n", odds1))
+cat(sprintf("Отношение шансов = %.5f. \nСледовательно, на каждую посещенную страницу форума шанс получить высокую оценку увеличивается в %.5f (%.5f, %.5f) раз.\n", ratio, ratio, ratio_CI[2], ratio_CI[1]))
+cat(sprintf("Например, если студент посетил 50 страниц на форуме, то его шанс получить высокую оценку будет: %.4f к 1.\n", odds2))
+```
+
+#### Оценка модели:
+
+```{r}
+modelChi <-  m1$null.deviance - m1$deviance
+chidf <- m1$df.null - m1$df.residual
+chisq.prob <- 1 - pchisq(modelChi, chidf)
+R2.hl = modelChi/m1$null.deviance
+R.cs = 1 - exp((m1$deviance - m1$null.deviance )/nrow(m1$data))
+R.n = R.cs / (1 - (exp(-(m1$null.deviance/nrow(m1$data)))))
+```
+
+```{r , echo=FALSE}
+cat(sprintf("Данная модель лучше предсказывает зависимую переменную чем нулевая модель поскольку дисперсия модели (deviance) снизилась с %.2f до %.2f.\n", m1$null.deviance, m1$deviance))
+cat(sprintf("Добаваление перменной vis_p статистически значимо улучшает модель: x_squared = %.2f, p = %.4f.\n", modelChi, chisq.prob))
+cat(sprintf("Метрики адекватности модели (ПсевдоR2 для логистической регрессии):\nR2 Hosmer-Lemeshov\t%.4f\nR2 Cox-Snell\t\t%.4f\nR2 Nagelkerke\t\t%.4f\n", R2.hl, R.cs, R.n))
+```
+
+#### Визуализация логистической регрессии
+
+```{r, echo=FALSE}
+students$grade_dum <- relevel(students$grade_dum, "0")
+students %>% ggplot(aes(y = as.numeric(grade_dum) - 1, x =  vis_p)) + geom_point()  +
+  geom_smooth(method = "glm", color = "red", method.args=list(family="binomial")) + labs(y = "Оценка студента", x = "Количество посещенных страниц") + ggtitle("Влияние посещения форума на оценку студента") +  theme(plot.title = element_text(hjust = 0.5))
+    
+```
+
+
+
+## Выводы
+
+    1. Студенты которые посещают форум имеет шанс 1.084 к 1 закончить курс на высокую оценку, т.е. оценку больше медианы по курсу.
+    2. С каждой посещаемой страницей форума шанс получить оценку выше медианы увеличивается в 1.0004 раза.
+
+
+
+
+
+
+
+
