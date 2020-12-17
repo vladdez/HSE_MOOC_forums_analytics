@@ -82,7 +82,7 @@ m <- summary(m1)
 ```
 
 ```{r , echo=FALSE}
-cat(sprintf("С каждым днем выполнения курса количество просмотренных страниц форума  увеличивается в %.4f раз.\n", exp(m1$coefficients[2])))
+cat(sprintf("С каждым днем выполнения курса количество просмотренных страниц форума  увеличивается в %.4f раз.\n", invlogit(m1$coefficients[2])))
 cat(sprintf("Этот эффект статистически значим: x_squared = %.3f, p = %.6f.\n", m[12]$coefficients[2], m[12]$coefficients[8]))
 ```
 
@@ -101,7 +101,7 @@ summary(m0)
 sd <- as.numeric(data.frame(VarCorr(m0))[5])
 m0d <- display(m0)
 coef = m0d$coef
-c <- c(round(exp(coef - sd), digits = 2), round(exp(coef + sd), digits = 2))
+c <- c(round(invlogit(coef - sd), digits = 2), round(invlogit(coef + sd), digits = 2))
 
 ```
 
@@ -123,7 +123,7 @@ summary(m0)
 sd <- as.numeric(data.frame(VarCorr(m0))[5])
 m0d <- display(m0)
 coef = m0d$coef
-c <- c(round(exp(coef - sd), digits = 0), round(exp(coef + sd), digits = 0))
+c <- c(round(invlogit(coef - sd), digits = 0), round(invlogit(coef + sd), digits = 0))
 ```
 
 ```{r , echo=FALSE}
@@ -145,19 +145,16 @@ summary(m1)
 ```
 
 ```{r , echo=FALSE}
-cat(sprintf("Увеличение нормализованного количества посещений форума на 1 пункт удлиняет прохождение курса на %.2f нормализованных дней.\n", exp(m1$coefficients[1] + m1$coefficients[2]) - exp(m1$coefficients[1])))
-cat(sprintf("Человек, который совершил 16 нормализованных посещений форума на %.2f нормализованных дней позже закончил курс.\n ", (exp(m1$coefficients[1] + m1$coefficients[2]) - exp(m1$coefficients[1])) * 16))
+cat(sprintf("Увеличение нормализованного количества посещений форума на 1 пункт удлиняет прохождение курса на %.2f нормализованных дней.\n", invlogit(m1$coefficients[1] + m1$coefficients[2]) - invlogit(m1$coefficients[1])))
+cat(sprintf("Человек, который совершил 16 нормализованных посещений форума на %.2f нормализованных дней позже закончил курс.\n ", (invlogit(m1$coefficients[1] + m1$coefficients[2]) - invlogit(m1$coefficients[1])) * 16))
 
 ```
-
-
-
 
 
 ## Выводы
 
     1. Чем дольше люди выполняют задания, тем чаще они обращаются к форуму.
-    2. Увеличение нормализованного количества посещений форума на 1 пункт удлиняет прохождение курса на 0.04 нормализованных дней.
+    2. Увеличение нормализованного количества посещений форума на 1 пункт удлиняет прохождение курса на 0.01 нормализованных дней.
  
 
 

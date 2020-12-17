@@ -1,0 +1,300 @@
+---
+title: "Оплата курса"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+library(dplyr)
+library(data.table)
+library(lme4)
+library(broom)
+library(ggplot2)
+library(pscl)
+library(arm)
+library(gmodels)
+
+remove_outliers <- function(x, na.rm = TRUE, ...) {
+  qnt <- quantile(x, probs=c(.25, .75), na.rm = na.rm, ...)
+  H <- 1.5 * IQR(x, na.rm = na.rm)
+  y <- x
+  y[x < (qnt[1] - H)] <- NA
+  y[x > (qnt[2] + H)] <- NA
+  y
+}
+
+```
+
+```{r, include=FALSE}
+wd <- getwd()
+students <- fread("../data/students.csv") %>% group_by(course_id) %>%
+  mutate(vis_p = remove_outliers(vis_p), vis_p_mean = mean(vis_p, na.rm = TRUE), vis_p_n = vis_p / vis_p_mean) %>% ungroup()
+
+
+courses <- fread("../data/courses.csv")
+table(courses$is_prog)
+```
+
+
+
+## 1. Об отчете
+
+### Исследовательские вопросы
+
+  1. Как плата за курс влияет на нормализованное количество посещенных страниц?
+  2. Как тип курса влияет на оплату курса?
+  3. Как плата за курс и тип курса влияет на количество посещенных страниц?
+  4. Как разные формы оплаты влияют на нормализованное количество посещенных страниц?
+  5. Как нормализованное количество посещенных страниц влияет на вероятность оплатить курс?
+  
+  
+  
+### Содержание отчета
+ 
+  1. Влияние платы за курс на количество посещенных страниц
+  2. Влияние платы за курс и программирования на количество посещенных страниц
+  3. Влияние типа оплаты за курс на количество посещенных страниц
+  4. Влияние нормализованного количество посещенных страниц на вероятность оплатить курс
+
+
+
+### Описание баз данных и ее переменных
+
+  - Все рассматриваемые студенты закончили курс.
+  - Исключен преподавательский состав.
+  - Исключены два курса, в которых все окончившие курс получали оценку 100 баллов.
+  - Два курса (discrete-maths и python-basic) найти не удалось.
+  - Анализируем 56 курсов.
+  - 34 индивидуальных курса и 20 курсов из специализаций.
+  - В 9 курсах есть задания по программированию (см. переменную is_prog).
+
+### Переменные
+- **Посещение форума.**
+  - ***vis_b*** - посещал форум или нет;
+  - ***vis_p*** - количество посещенных страниц форума;
+  - ***vis_p_n*** - нормализованное количество посещенных страниц = число посещенных страний / среднее чсило посещенных страниц на курсе;
+- **Тип курса.**     
+  - ***spec_b*** - индивидуальный курс или курс из специализации;
+  - ***is_prog*** - есть задания по программированию в курсе или нет;
+- **Оплата.**
+  - ***was_pay*** равна 1 если был получен сертификат т.е.
+  - ***what_pay***
+    - курс был оплачен самим пользователем;
+    - ему дали финансовую помощь;
+    - ему дали групповую поддержку (например в рамках программы для образовательных учреждений);
+
+### 2. Влияние платы за курс  на количество посещенных страниц
+
+Обоснование выбора переменных и визуализация
+
+```{r, include=FALSE}
+
+cat(sprintf("На таблице внизу среднее количество посещенных страниц отличается в зависимости от того, была оплата или нет\nСледовательно was_pay может служить предиктором для vis_p\nДисперсия внутри каждой переменной выше чем среднее\n"))
+
+
+with(students, tapply(vis_p, was_pay, function(x) {
+    sprintf("M (SD) = %1.2f (%1.2f)", mean(x, na.rm =TRUE), sd(x, na.rm =TRUE))
+}))
+
+```
+
+```{r, warning=FALSE}
+students %>% ggplot(aes(factor(was_pay), ..count..)) + geom_bar() + ggtitle("Связь числа студентов и оплаты курса") + labs(x="Была оплата или нет", y = "Число студентов")  +  scale_x_discrete(labels=c("Нет", "Да")) + theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+```{r, message=FALSE, warning=FALSE}
+ggplot(students, aes(vis_p, fill = factor(was_pay))) + geom_histogram(binwidth = 40) + facet_grid(~was_pay) + labs(x="Количество посещенных страниц форума", fill = "Была оплата?")
+students %>% ggplot(aes(x = factor(was_pay), y = vis_p)) + geom_boxplot() + ggtitle("Кто и как платил за курс") + labs(x="Была оплата или нет", y = "Количество просмотренных страниц на форуме") + scale_x_discrete(labels=c("Нет", "Да")) +  theme(plot.title = element_text(hjust = 0.5))
+
+students %>% group_by(was_pay) %>% summarise(mean_visit = mean(vis_p, na.rm = TRUE))
+```
+
+
+
+
+Выбор статистических инструментов:
+
+    - Переменная vis_p счетная, для таких переменных используется пуассоновское или отрицательно-биномиальное распределение.
+    - Overdispersion test, odTest(), поможет нам выбрать необходимое распределение. Оно проверяет верно ли необходимое условие для использование Пуассоновской регрессии - равенство условного среднего и условного распределения. Если значение p-value меньше 0.05, то гипотеза о чрезмерной дисперсии не может быть отброшена. В таком случае следует применять отрицательно-биномиальное распределение.
+    - Для обратной трансфорации мы используем функцию invlogit().
+    - Поскольку на каждом курсе посещения могут быть по разному распределены, используем нормализованное значение посещений форума - vis_p_n. 
+
+```{r , echo=FALSE}
+m1 <-  glm.nb(vis_p_n ~ was_pay, students)
+od <- odTest(m1)
+
+```
+
+```{r, include=FALSE}
+
+cat(sprintf("По причине чрезмерной дисперсии мы используем отрицательную биномиальную регрессию\n"))
+```
+
+Построение регресии:
+
+```{r}
+
+m0 <-  glm.nb(vis_p_n ~ factor(was_pay), students)
+summary(m0)
+
+```
+
+```{r, include=FALSE}
+m <- summary(m0)
+```
+
+Интерпретация регрессии: 
+
+```{r , echo=FALSE}
+cat(sprintf("Среднее количество страниц просмотренных на форуме у тех, кто платил за курс выше в %.4f раз чем у тех, кто не платил за курс.\n", invlogit(m0$coefficients[2])))
+cat(sprintf("Этот эффект статистически значим: x_squared = %.2f, p = %.6f.\n", m$coefficients[2], m$coefficients[8]))
+```
+Визуализируем взаимосвязь 
+
+```{r}
+students %>% 
+  ggplot(aes(y = was_pay, x = vis_p_n)) + geom_point() +  geom_smooth(method="glm.nb", color = "red") + ggtitle("Влияние посещения форума на длительность прохождения курса") + labs(x="Нормализованные посещения", y = "Платил за курс или нет") +  theme(plot.title = element_text(hjust = 0.5))
+```
+
+### 3. Влияние платы за курс и программирования на количество посещенных страниц
+
+Выбор статистических инструментов:
+
+- Переменная vis_p счетная. Используем отрицательно-биномиальное распределение.
+- Поскольку на каждом курсе посещения могут быть по разному распределены, используем нормализованное значение посещений форума - vis_p_n. 
+
+#### 3.1. Тип курса и оплата курса
+
+```{r, echo =FALSE, warning=FALSE}
+students %>%  filter(vis_p < 100) %>% ggplot(aes(y = vis_p, x = factor(was_pay), fill = factor(is_prog)))  + geom_boxplot(outlier.shape = NA) + ggtitle("Оплата и посещение форума") + labs(x="Была оплата", y = "Количество посещенных страниц",  fill ="Тип курса") +  theme(plot.title = element_text(hjust = 0.5)) + scale_x_discrete(labels=c("Не платил", "Платил")) + scale_fill_discrete(labels=c("Только тесты", "Программирование"))
+
+```
+
+```{r, echo =FALSE, warning=FALSE}
+ggplot(students) +
+  aes(x = factor(was_pay), fill = factor(is_prog)) +
+  geom_bar() +
+  scale_fill_hue() +
+  theme_minimal() + ggtitle(" Тип курса и оплата") + labs(x="Оплачивал курс?", y = "Число студентов", fill = "Курс по программированию") + scale_x_discrete(labels=c("Нет", "Да")) + scale_fill_discrete(labels=c("Нет", "Да"))   +  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+```{r, include =FALSE}
+tab <- table(students$was_pay, students$is_prog )
+ct <- CrossTable(tab, fisher = TRUE, chisq = TRUE, expected = TRUE, sresid = TRUE)
+chisq <- chisq.test(tab)
+```
+
+Интерпретация регрессии: 
+
+```{r , echo=FALSE}
+cat(sprintf("Существует значимая связь между платой за курс и курсом с программированием: X-squared = %.2f, p-value = %.2f.\n",round(chisq$statistic, digit = 2), round(chisq$p.value, digit = 2)))
+
+cat(sprintf("Вероятность оплаты курса для курса с программированием в %.3f (%.3f и %.3f) раза выше, чем шанс оплаты курса для курса без программирования\n* высокая оценка = оценка выше медианы по курсу \n", round(ct$fisher.ts$estimate, digit = 3),  round(ct$fisher.ts$conf.int[1], digit = 3), round(ct$fisher.ts$conf.int[2], digit = 3)))
+
+```
+
+#### 3.2 Как нормализованное посещение форума связано с типом курса и оплатой курса студентом
+
+
+```{r}
+m1 <-  glm.nb(vis_p_n ~ factor(was_pay) + factor(is_prog) + factor(was_pay)*factor(is_prog), students)
+summary(m1)
+```
+Интерпретация регрессии: 
+
+```{r , echo=FALSE}
+cat(sprintf("Среднее нормализованное количество страниц просмотренных на форуме у тех, кто оплачивал курс выше в %.4f раз чем у тех, кто не оплачивал курс.\n", invlogit(m1$coefficients[2])))
+cat(sprintf("Этот эффект статистически значим: x_squared = %.2f, p = %.6f.\n", m$coefficients[2], m$coefficients[13]))
+
+cat(sprintf("Среднее нормализованное количество страниц просмотренных на форуме у курсов с заданиями по программированию выше в %.4f раз чем на курсах без заданий по программированию.\n", invlogit(m1$coefficients[3])))
+cat(sprintf("Этот эффект статистически значим: x_squared = %.2f, p = %.6f.\n", m$coefficients[3], m$coefficients[14]))
+
+cat(sprintf("Среднее нормализованное количество страниц просмотренных на форуме на курсах по программированию у тех, кто оплачивал курс выше в %.4f раз чем на курсах без заданий по программированию и у тех кто не оплачивал курс.\n", invlogit(m1$coefficients[4])))
+cat(sprintf("Этот эффект статистически значим: x_squared = %.2f, p = %.6f.\n", m$coefficients[4], m$coefficients[15]))
+```
+
+
+Визуализируем взаимосвязь 
+
+```{r}
+students %>% 
+  ggplot(aes(y = was_pay, x = vis_p_n, color = factor(is_prog))) +   geom_point(aes(color = as.factor(is_prog)), shape = 1)   +  geom_smooth(method="glm.nb") + ggtitle("Влияние типа курса и оплаты на\n нормализованное посещение курса") + labs(x="Нормализованные посещения", y = "Платил за курс или нет", color = "Тип курса") + scale_color_discrete(labels=c("Без заданий\nс программированием", "С заданиями\nпо программированию"))+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+###  4. Влияние типа оплаты за курс на количество посещенных страниц
+
+Выбор статистических инструментов:
+
+- Переменная vis_p счетная. Используем отрицательно-биномиальное распределение.
+- Поскольку на каждом курсе посещения могут быть по разному распределены, используем нормализованное значение посещений форума - vis_p_n. 
+
+```{r}
+m1 <-  glm.nb(vis_p_n ~ factor(what_pay), students)
+summary(m1)
+```
+
+```{r, include=FALSE}
+m <- summary(m1)
+```
+
+Интерпретация регрессии: 
+
+```{r , echo=FALSE}
+cat(sprintf("Количество страниц просмотренных на форуме у тех, кто оплачивал курс по финансовой помощи, выше в %.4f раз чем у тех, кто не оплачивал курс.\n", invlogit(m1$coefficients[2])))
+cat(sprintf("Этот эффект статистически значим: x_squared = %.2f, p = %.6f.\n", m$coefficients[2], m$coefficients[13]))
+
+cat(sprintf("Количество страниц просмотренных на форуме у тех, кто оплачивал курс по групповой помощи, выше в %.4f раз чем чем у тех, кто не оплачивал курс.\n", invlogit(m1$coefficients[3])))
+cat(sprintf("Этот эффект статистически значим: x_squared = %.2f, p = %.6f.\n", m$coefficients[3], m$coefficients[14]))
+
+cat(sprintf("Количество страниц просмотренных на форуме на курсах по программированию у тех, кто оплачивал курс самостоятельно, выше в %.4f раз чем у тех, кто не оплачивал курс.\n", invlogit(m1$coefficients[4])))
+cat(sprintf("Этот эффект статистически значим: x_squared = %.2f, p = %.6f.\n", m$coefficients[4], m$coefficients[15]))
+```
+Визуализируем взаимосвязь:
+
+```{r, echo =FALSE, warning=FALSE}
+
+students %>% ggplot(aes(factor(what_pay), ..count..)) + geom_bar() + ggtitle("Распределение числа студентов по форме оплаты") + labs(x="Форма оплаты", y = "Число студентов")  +  theme(plot.title = element_text(hjust = 0.5))
+
+students  %>% ggplot(aes(y = vis_p_n, x = factor(what_pay), color = factor(what_pay))) + geom_boxplot(outlier.shape = NA) + ggtitle("Тип оплаты и посещение форума") + labs(x="Тип оплаты", y = "Количество посещенных страниц",  color ="Тип оплаты") +  theme(plot.title = element_text(hjust = 0.5)) + stat_summary(fun.y = "median", color = "red",
+                                 size = 3, geom = "point")
+
+students %>% group_by(what_pay) %>% summarise(mean_vis = mean(vis_p, na.rm = TRUE))
+```
+
+###  5. Влияние нормализованного количество посещенных страниц на вероятность оплатить курс
+
+```{r}
+m0 <- glm(data = students, was_pay ~ vis_p_n, family = "binomial")
+summary(m0)
+```
+
+```{r, echo=FALSE}
+cat(sprintf("Вероятность студента не посещавшего форум оплатить курс равна %.3f к 1\n", exp(m0$coefficients[1])))
+cat(sprintf("С увеличением на 1 пункт нормализованного посещения страниц форума вероятность, что студент оплатил курс увеличивается в %.3f раз\n", exp(m0$coefficients[2])))
+cat(sprintf("Например, если студент посетил форум 25 раз, то вероятность, что студент оплатил курс будет равна %.3f к 1\n", exp(m0$coefficients[1] + m0$coefficients[2]*25) ))
+```
+Визуализируем взаимосвязь:
+
+```{r, echo=FALSE}
+students %>% ggplot(aes(x = vis_p_n, y = was_pay)) + geom_point(aes(color = as.factor(was_pay)), shape = 1) + ggtitle("Оплата и среднее нормализованное посещение форума") +
+  theme(axis.title = element_text(color = "grey20", size = 14, angle = 90, hjust = .5, vjust = .5, face = "plain"),
+        axis.text.x = element_text(color = "grey20", size = 14, angle = 90, hjust = .5, vjust = .5, face = "plain"),
+        axis.text.y = element_text(color = "grey20", size = 16, angle = 0, hjust = 1, vjust = 0, face = "plain"),
+        axis.title.x = element_text(color = "grey20", size = 16, angle = 0, hjust = .5, vjust = 0, face = "plain"),
+        axis.title.y = element_text(color = "grey20", size = 16, angle = 90, hjust = .5, vjust = .5, face = "plain")) + scale_color_discrete(labels=c("Курс не оплачен", "Курс оплачен"))+
+ labs(x = "Среднее нормализованное посещение форума", y = "Оплата", color = "Оплата") +
+         stat_function(fun = function(x){
+          predict(m0, newdata = data.frame(vis_p_n = x),
+                      type = "response")}) + theme_bw() +  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+## Выводы
+
+    1. Студенты, которые оплачивали курс, посещали в 0.57 раз больше нормализованных страниц чем те, что не платили за курс.
+    2. Студент оплатит курс с программированием с вероятностью в 1.653 (1.589 и 1.720) раза выше, чем курс без программирования.
+    3. Студенты, которые оплачивали курс на курсе с программированием, посещали в 0.57 раз больше нормализованных страниц чем те, что не платили за курс.
+    4. Студенты, которые оплачивали курса по финансовой помощи - в 0.52, по групповой помощи - в 0.51, лично - в 0.63 раза больше посещают больше нормализованных страниц по сравнению с теми, кто не оплачивал курс.
+    5. Вероятность, что студент оплатит курс, увеличвается в 1.1 раз при каждом посещении форума
