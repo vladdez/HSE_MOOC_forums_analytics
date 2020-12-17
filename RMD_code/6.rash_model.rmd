@@ -1,0 +1,136 @@
+---
+title: "Модель Раша"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+library(dplyr)
+library(data.table)
+library(lme4)
+library(ggplot2)
+library(tidyr)
+library(pscl)
+library(arm)
+library(broom)
+
+remove_outliers <- function(x, na.rm = TRUE, ...) {
+  qnt <- quantile(x, probs=c(.25, .75), na.rm = na.rm, ...)
+  H <- 1.5 * IQR(x, na.rm = na.rm)
+  y <- x
+  y[x < (qnt[1] - H)] <- NA
+  y[x > (qnt[2] + H)] <- NA
+  y
+}
+
+```
+
+```{r}
+wd <- getwd()
+assignments <- fread("unzip -cq ../data/assignments.zip")  %>% group_by(course_name) %>%
+  mutate(course_item_type_desc = dplyr::recode(course_item_type_desc, `programming assignment` = "programming", `exam` = "test")) %>%
+  filter(course_item_type_desc != "lecture") %>% mutate(course_item_type_desc = factor(course_item_type_desc)) %>%
+  filter(assessment_status == 1 | assessment_status == 0)
+
+```
+
+
+## 1. Об отчете
+
+### Исследовательские вопросы
+
+  1. Как связаны вероятность выполнения задания и посещение форума во время выполнения задания?
+  2. Как связаны число попыток и посещение форума во время выполнения задания?
+
+### Содержание отчета
+ 
+  1. Дисперсия переменной assessment_status
+  2. Связь вероятности выполения задания с посещением форума  во время выполнения задания
+  3. Связь числа попыток с посещением форума во время выполнения задания
+
+## Описание переменных
+  
+  - **attempts** - Попытки за задание. Сколько попыток этот студент сделал при решении этого задания;
+  - **vis_wt** - Посещения форума. Сколько раз этот студент посещал форум во время прохождения этого задания;
+  - **assessment_status** - Статус выполнения задания: 1 - удалось решить, 0 - не удалось решить.
+  - **assignments** - база данных, с данными на уровне студентов
+  - **assessment_id** - токен задания;
+  - **hse_user_id** - токен студента;
+  - **course_item_type_desc** - тип задания;
+    - ***lecture*** - тест в видео (исключаю из анализа);
+    - ***test*** - тест;
+    - ***programming*** - задание по программированию;
+
+#### О модели Раша
+
+Модель Раша - популярная психометрическая модель, предполагающая нелинейную связь между оценками студента за задание и его знаниями.
+Мы будем знания определять с помощью попыток за задания и посещений форума.
+
+#### Распределение переменной assessment_status
+
+```{r}
+table(assignments$assessment_status)
+```
+#### Распределение переменной attempts
+
+```{r}
+summary(assignments$attempts)
+```
+
+## 2. Вероятность выполнить задание
+
+#### Дисперсия статуса выполнения задания по студентам и заданиям
+
+```{r}
+mr0 <- glmer(data = assignments, assessment_status ~ 1 + (1|hse_user_id) + (1|course_item_name), family = "binomial")
+summary(mr0)
+```
+
+#### Вероятность выполнить задание и посещение форума во время выполения задания
+
+```{r}
+mr1 <- glmer(data = assignments, assessment_status ~ 1 + vis_wt + (1|hse_user_id) + (1|course_item_name), family = "binomial")
+summary(mr1)
+mrr1 <- summary(mr1)
+```
+
+
+```{r, echo=FALSE}
+cat(sprintf("Вероятность, что студент выполнит задание без посещения форума равна %.6f к 1\n", exp(mrr1$coefficients[1])))
+cat(sprintf("С увеличением на 1 пункт посещения форума вероятность, что студент выполнит задание увеличивается в %.2f раз\n", exp(mrr1$coefficients[2])))
+cat(sprintf("Например, если студент посетил форум 25 раз,\nто вероятность, что студент выполнит задание будет равна %.6f к 1\n\n", exp(mrr1$coefficients[1] + mrr1$coefficients[2]* 25) ))
+```
+
+```{r}
+anova(mr0, mr1)
+```
+
+## 3. Число попыток и посещение форума 
+
+Считаем только по выполненным заданиям. 
+
+```{r}
+visits_attempts <- assignments %>% filter(assessment_status == 1)
+
+```
+
+```{r}
+mr2 <- glmer(data = visits_attempts, attempts ~ 1 + vis_wt + (1|hse_user_id) + (1|course_item_name), family = "poisson")
+summary(mr2)
+mrr2 <- summary(mr2)
+```
+
+```{r, echo=FALSE}
+cat(sprintf("Попытка после которой студент выполнит задание, без посещения форума равна %.2f\n", invlogit(mrr2$coefficients[1])))
+cat(sprintf("С увеличением числа посещенных страниц на 1 пункт число попыток увеличиться в %.2f раз\n", invlogit(mrr2$coefficients[2])))
+cat(sprintf("Например, если студент посетил форум 25 раз, то он выполнит задание с %.2f попытки\n\n", invlogit(mrr2$coefficients[1] + mrr2$coefficients[2]* 25) ))
+```
+
+## Выводы
+
+  1. По модифицированной модели Раша существует значимая положительная логистическая связь между посещением форума и вероятностью выполнить задание c учетом индивидуальных различий студентов и заданий. 
+  2. С увеличением на 1 пункт посещения форума вероятность, что студент выполнит задание увеличивается в 1.01 раз
+  3. Число посещений форума коррелирует с количеством попыток положительно.
+  4. С увеличением числа посещенных страниц на 1 пункт число попыток измениться в 0.50 раз.
+
+
