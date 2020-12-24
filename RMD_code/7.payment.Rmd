@@ -162,7 +162,9 @@ m <- summary(m0)
 
 ```{r , echo=FALSE}
 cat(sprintf("Вероятность оплатить курс, если не заходил на форум: %.4f.\n", invlogit(m0$coefficients[1])))
-cat(sprintf("Вероятность оплатить курс, если заходил на форум 1 %.4f.\n", invlogit(m0$coefficients[1] + m0$coefficients[2])))
+cat(sprintf("Вероятность оплатить курс, если заходил на форум 1 раз: %.4f.\n", invlogit(m0$coefficients[1] + m0$coefficients[2])))
+cat(sprintf("Вероятность оплатить курс, если заходил на форум 10 раз: %.4f.\n", invlogit(m0$coefficients[1] + m0$coefficients[2]*10)))
+cat(sprintf("С каждым заходом на форум вероятность оплатить курс увеличивается в %.4f раз.\n", invlogit(m0$coefficients[1] + m0$coefficients[2]*16) - invlogit(m0$coefficients[1] + m0$coefficients[2]*15)))
 cat(sprintf("Этот эффект статистически значим: x_squared = %.2f, p = %.6f.\n", m$coefficients[2], m$coefficients[8]))
 ```
 
