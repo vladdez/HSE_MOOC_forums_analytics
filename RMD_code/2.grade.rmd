@@ -37,7 +37,6 @@ students$grade_dum <-factor(students$grade_dum)
 students$vis_b <-factor(students$vis_b)
 students$spec_b <-factor(students$spec_b)
 
-inv_logit <- function (x) {1/(1+exp(-x))}
 ```
 
 
@@ -147,46 +146,29 @@ cat(sprintf("Шанс получения высокой оценки после 
   1. Следует использовать логистическую регрессию поскольку зависимая переменная имеет только два возможных исхода
   2. Для расчетов нужно построить перекрестную таблицу
 
-
 ```{r}
 students$grade_dum <- relevel(students$grade_dum, "0")
 m1 <-  glm(grade_dum ~ vis_p, family = "binomial", students)
 summary(m1)
 ```
 
-```{r}
-prob0<- invlogit(m1$coefficients[1])
-prob1<- invlogit(m1$coefficients[1] + m1$coefficients[2])
-prob2<- invlogit(m1$coefficients[1] + m1$coefficients[2] * 50)
-```
-
-
 #### Результаты логистической регрессии:
-
-```{r , echo=FALSE}
-
-cat(sprintf("Вероятность получить высокую оценку студентом, который ни разу не посещал форум: %.4f.\n", prob0))
-cat(sprintf("Вероятность получить высокую оценку студентом, который один раз посещал форум: %.4f. \n", prob1))
-
-```
 
 Расчет отношения шансов:
 
 ```{r}
-odds0 <- prob0/(1-prob0)
-odds1 <- prob1/(1-prob1)
-odds2 <- prob2/(1-prob2)
-ratio = odds1/odds0
-# похожие значения можно получить используя exp(m1$coefficients)
-ratio_CI <- exp(confint(m1))
+prob0<- exp(m1$coefficients[1])
+prob1<- exp(m1$coefficients[1] + m1$coefficients[2])
+prob2<- exp(m1$coefficients[1] + m1$coefficients[2] * 50)
+prob3<- exp(m1$coefficients[1] + m1$coefficients[2] * 2) - exp(m1$coefficients[1] + m1$coefficients[2] * 1)
 ```
 
 ```{r , echo=FALSE}
 
-cat(sprintf("Шанс получить высокую оценку если не посещал форум: %.4f к 1.\n", odds0))
-cat(sprintf("Шанс получить высокую оценку после посещения одной страницы форума: %.4f к 1.\n", odds1))
-cat(sprintf("Отношение шансов = %.5f. \nСледовательно, на каждую посещенную страницу форума шанс получить высокую оценку увеличивается в %.5f (%.5f, %.5f) раз.\n", ratio, ratio, ratio_CI[2], ratio_CI[1]))
-cat(sprintf("Например, если студент посетил 50 страниц на форуме, то его шанс получить высокую оценку будет: %.4f к 1.\n", odds2))
+cat(sprintf("Шанс получить высокую оценку студентом, который ни разу не посещал форум: %.4f к 1.\n", prob0))
+cat(sprintf("Шанс получить высокую оценку студентом, который один раз посещал форум: %.4f к 1. \n", prob1))
+cat(sprintf("Шанс получить высокую оценку студентом, который 50 раз посещал форум: %.4f к 1. \n", prob2))
+cat(sprintf("С каждой просмотренной страницей форума отношение шансов увеличивается в %.4f раз. \n", prob3))
 ```
 
 #### Оценка модели:
@@ -210,8 +192,13 @@ cat(sprintf("Метрики адекватности модели (ПсевдоR
 
 ```{r, echo=FALSE}
 students$grade_dum <- relevel(students$grade_dum, "0")
-students %>% ggplot(aes(y = as.numeric(grade_dum) - 1, x =  vis_p)) + geom_point()  +
-  geom_smooth(method = "glm", color = "red", method.args=list(family="binomial")) + labs(y = "Оценка студента", x = "Количество посещенных страниц") + ggtitle("Влияние посещения форума на оценку студента") +  theme(plot.title = element_text(hjust = 0.5))
+students %>% ggplot(aes(y = as.numeric(grade_dum) - 1, x =  vis_p)) + 
+  geom_point(aes(color = as.factor(grade_dum)), shape = 1)   + 
+  geom_smooth(method = "glm", color = "red", method.args=list(family="binomial")) + 
+  labs(y = "Оценка студента", x = "Количество посещенных страниц", color = "Оценка студента") + 
+  scale_color_discrete(labels=c("Ниже медианы", "Выше медианы")) +
+  ggtitle("Влияние посещения форума на оценку студента") +  
+  theme(plot.title = element_text(hjust = 0.5))
     
 ```
 
@@ -219,8 +206,8 @@ students %>% ggplot(aes(y = as.numeric(grade_dum) - 1, x =  vis_p)) + geom_point
 
 ## Выводы
 
-    1. Студенты которые посещают форум имеет шанс 1.084 к 1 закончить курс на высокую оценку, т.е. оценку больше медианы по курсу.
-    2. С каждой посещаемой страницей форума шанс получить оценку выше медианы увеличивается в 1.0004 раза.
+    1. Студенты которые посещают форум имеет шанс 1.083 к 1 закончить курс на высокую оценку, т.е. оценку больше медианы по курсу.
+    2. С каждой посещаемой страницей форума шанс получить оценку выше медианы увеличивается в 1.0005 раза.
 
 
 
