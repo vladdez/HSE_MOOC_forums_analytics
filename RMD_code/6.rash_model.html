@@ -377,9 +377,7 @@ summary {
 
 <pre class="r"><code>wd &lt;- getwd()
 assignments &lt;- fread(&quot;unzip -cq ../data/assignments.zip&quot;)  %&gt;% group_by(course_name) %&gt;%
-  mutate(course_item_type_desc = dplyr::recode(course_item_type_desc, `programming assignment` = &quot;programming&quot;, `exam` = &quot;test&quot;)) %&gt;%
-  filter(course_item_type_desc != &quot;lecture&quot;) %&gt;% mutate(course_item_type_desc = factor(course_item_type_desc)) %&gt;%
-  filter(assessment_status == 1 | assessment_status == 0)</code></pre>
+  filter(course_item_type_desc != &quot;lecture&quot;) %&gt;% mutate(course_item_type_desc = factor(course_item_type_desc))</code></pre>
 <div id="об-отчете" class="section level2">
 <h2>1. Об отчете</h2>
 <div id="исследовательские-вопросы" class="section level3">
@@ -392,9 +390,9 @@ assignments &lt;- fread(&quot;unzip -cq ../data/assignments.zip&quot;)  %&gt;% g
 <div id="содержание-отчета" class="section level3">
 <h3>Содержание отчета</h3>
 <ol style="list-style-type: decimal">
-<li>Дисперсия переменной assessment_status</li>
-<li>Связь вероятности выполения задания с посещением форума во время выполнения задания</li>
-<li>Связь числа попыток с посещением форума во время выполнения задания</li>
+<li>Дисперсия переменной assessment_status;</li>
+<li>Связь вероятности выполнения задания с посещением форума во время выполнения задания;</li>
+<li>Связь числа попыток с посещением форума во время выполнения задания.</li>
 </ol>
 </div>
 </div>
@@ -402,8 +400,9 @@ assignments &lt;- fread(&quot;unzip -cq ../data/assignments.zip&quot;)  %&gt;% g
 <h2>Описание переменных</h2>
 <ul>
 <li><strong>attempts</strong> - Попытки за задание. Сколько попыток этот студент сделал при решении этого задания;</li>
-<li><strong>vis_wt</strong> - Посещения форума. Сколько раз этот студент посещал форум во время прохождения этого задания;</li>
+<li><strong>vis_tw</strong> - Посещения форума. Сколько раз этот студент посещал форум во время прохождения этого задания. Важно: считается посещение форума за все время пока студент взаимодействует с задачей;</li>
 <li><strong>assessment_status</strong> - Статус выполнения задания: 1 - удалось решить, 0 - не удалось решить.</li>
+<li><strong>first_attempt</strong> - Статус выполнения задания с первой попытки: 1 - удалось решить с первой попытки, 0 - не удалось решить с первой попытки.</li>
 <li><strong>assignments</strong> - база данных, с данными на уровне студентов</li>
 <li><strong>assessment_id</strong> - токен задания;</li>
 <li><strong>hse_user_id</strong> - токен студента;</li>
@@ -423,151 +422,166 @@ assignments &lt;- fread(&quot;unzip -cq ../data/assignments.zip&quot;)  %&gt;% g
 <pre class="r"><code>table(assignments$assessment_status)</code></pre>
 <pre><code>## 
 ##      0      1 
-##    760 543846</code></pre>
+##    767 544647</code></pre>
+<pre class="r"><code>table(assignments$first_attempt)</code></pre>
+<pre><code>## 
+##      0      1 
+## 127830 417584</code></pre>
 </div>
 <div id="распределение-переменной-attempts" class="section level4">
 <h4>Распределение переменной attempts</h4>
 <pre class="r"><code>summary(assignments$attempts)</code></pre>
 <pre><code>##     Min.  1st Qu.   Median     Mean  3rd Qu.     Max. 
-##    0.000    0.000    1.000    2.736    3.000 1937.000</code></pre>
+##    0.000    0.000    1.000    2.667    2.000 1937.000</code></pre>
 </div>
 </div>
-<div id="вероятность-выполнить-задание" class="section level2">
-<h2>2. Вероятность выполнить задание</h2>
+<div id="вероятность-выполнить-задание-с-первой-попытки" class="section level2">
+<h2>2. Вероятность выполнить задание с первой попытки</h2>
 <div id="дисперсия-статуса-выполнения-задания-по-студентам-и-заданиям" class="section level4">
 <h4>Дисперсия статуса выполнения задания по студентам и заданиям</h4>
-<pre class="r"><code>mr0 &lt;- glmer(data = assignments, assessment_status ~ 1 + (1|hse_user_id) + (1|course_item_name), family = &quot;binomial&quot;)
+<pre class="r"><code>mr0 &lt;- glmer(data = assignments, factor(first_attempt) ~ 1 + (1|hse_user_id) + (1|course_item_name), family = &quot;binomial&quot;)
 summary(mr0)</code></pre>
 <pre><code>## Generalized linear mixed model fit by maximum likelihood (Laplace
 ##   Approximation) [glmerMod]
 ##  Family: binomial  ( logit )
-## Formula: assessment_status ~ 1 + (1 | hse_user_id) + (1 | course_item_name)
+## Formula: factor(first_attempt) ~ 1 + (1 | hse_user_id) + (1 | course_item_name)
 ##    Data: assignments
 ## 
-##      AIC      BIC   logLik deviance df.resid 
-##   6892.9   6926.5  -3443.4   6886.9   544603 
+##       AIC       BIC    logLik  deviance  df.resid 
+##  496689.2  496722.8 -248341.6  496683.2    545411 
 ## 
 ## Scaled residuals: 
 ##      Min       1Q   Median       3Q      Max 
-## -193.066    0.000    0.000    0.000    9.588 
+## -21.7196   0.0187   0.3334   0.5273   5.3180 
 ## 
 ## Random effects:
 ##  Groups           Name        Variance Std.Dev.
-##  hse_user_id      (Intercept) 117.887  10.858  
-##  course_item_name (Intercept)   4.804   2.192  
-## Number of obs: 544606, groups:  hse_user_id, 34735; course_item_name, 454
+##  hse_user_id      (Intercept) 0.7561   0.8695  
+##  course_item_name (Intercept) 3.7349   1.9326  
+## Number of obs: 545414, groups:  hse_user_id, 34735; course_item_name, 454
 ## 
 ## Fixed effects:
-##              Estimate Std. Error z value Pr(&gt;|z|)    
-## (Intercept) 18.442287   0.003189    5783   &lt;2e-16 ***
+##             Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept)  1.80544    0.08359    21.6   &lt;2e-16 ***
 ## ---
-## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
-## convergence code: 0
-## unable to evaluate scaled gradient
-## Model failed to converge: degenerate  Hessian with 1 negative eigenvalues</code></pre>
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
 </div>
-<div id="вероятность-выполнить-задание-и-посещение-форума-во-время-выполения-задания" class="section level4">
-<h4>Вероятность выполнить задание и посещение форума во время выполения задания</h4>
-<pre class="r"><code>mr1 &lt;- glmer(data = assignments, assessment_status ~ 1 + vis_wt + (1|hse_user_id) + (1|course_item_name), family = &quot;binomial&quot;)
+<div id="вероятность-выполнить-задание-с-первой-попытки-и-посещение-форума-во-время-выполнения-задания" class="section level4">
+<h4>Вероятность выполнить задание с первой попытки и посещение форума во время выполнения задания</h4>
+<pre class="r"><code>mr1 &lt;- glmer(data = assignments, factor(first_attempt) ~ 1 + vis_tw + (1|hse_user_id) + (1|course_item_name), family = &quot;binomial&quot;)
 summary(mr1)</code></pre>
 <pre><code>## Generalized linear mixed model fit by maximum likelihood (Laplace
 ##   Approximation) [glmerMod]
 ##  Family: binomial  ( logit )
-## Formula: 
-## assessment_status ~ 1 + vis_wt + (1 | hse_user_id) + (1 | course_item_name)
+## Formula: factor(first_attempt) ~ 1 + vis_tw + (1 | hse_user_id) + (1 |  
+##     course_item_name)
 ##    Data: assignments
 ## 
-##      AIC      BIC   logLik deviance df.resid 
-##   7363.1   7408.0  -3677.6   7355.1   544602 
+##       AIC       BIC    logLik  deviance  df.resid 
+##  496297.4  496342.3 -248144.7  496289.4    545410 
 ## 
 ## Scaled residuals: 
 ##     Min      1Q  Median      3Q     Max 
-## -73.429   0.003   0.003   0.010   2.938 
+## -22.783   0.018   0.334   0.526  79.605 
 ## 
 ## Random effects:
 ##  Groups           Name        Variance Std.Dev.
-##  hse_user_id      (Intercept) 4.945    2.224   
-##  course_item_name (Intercept) 7.554    2.749   
-## Number of obs: 544606, groups:  hse_user_id, 34735; course_item_name, 454
+##  hse_user_id      (Intercept) 0.7502   0.8661  
+##  course_item_name (Intercept) 3.7808   1.9444  
+## Number of obs: 545414, groups:  hse_user_id, 34735; course_item_name, 454
 ## 
 ## Fixed effects:
-##              Estimate Std. Error z value Pr(&gt;|z|)    
-## (Intercept) 11.365229   0.290920   39.07   &lt;2e-16 ***
-## vis_wt       0.014773   0.007424    1.99   0.0466 *  
+##               Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept)  1.8186772  0.0851193   21.37   &lt;2e-16 ***
+## vis_tw      -0.0060111  0.0003221  -18.66   &lt;2e-16 ***
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
 ## Correlation of Fixed Effects:
 ##        (Intr)
-## vis_wt -0.006</code></pre>
+## vis_tw -0.009
+## convergence code: 0
+## Model is nearly unidentifiable: very large eigenvalue
+##  - Rescale variables?</code></pre>
 <pre class="r"><code>mrr1 &lt;- summary(mr1)</code></pre>
-<pre><code>## Вероятность, что студент выполнит задание без посещения форума равна 86269.260666 к 1</code></pre>
-<pre><code>## С увеличением на 1 пункт посещения форума вероятность, что студент выполнит задание увеличивается в 1.01 раз</code></pre>
-<pre><code>## Например, если студент посетил форум 25 раз,
-## то вероятность, что студент выполнит задание будет равна 124811.956696 к 1</code></pre>
+<pre><code>## Вероятность, что студент выполнит задание с первой попытки без посещения форума равна 0.860407.</code></pre>
+<pre><code>## С увеличением на 1 пункт посещения форума отношение шансов изменится в -0.04 раз</code></pre>
+<pre><code>## Например, если студент посетил форум 1 раз,
+## то отношение шансов, что студент выполнит задание будет равно 6.13.</code></pre>
+<pre><code>## А если студент посетил форум 25 раз,
+## то отношение шансов, что студент выполнит задание будет равно 5.30.</code></pre>
+<pre><code>## С увеличением на 1 пункт посещения форума вероятность выполнить задание с первой попытки изменится в -0.00074 раз</code></pre>
+<pre><code>## Например, если студент посетил форум 1 раз,
+## то вероятность, что студент выполнит задание будет равна 0.86 к 1</code></pre>
+<pre><code>## А если студент посетил форум 25 раз,
+## то вероятность, что студент выполнит задание будет равна 0.84 к 1</code></pre>
 <pre class="r"><code>anova(mr0, mr1)</code></pre>
 <pre><code>## Data: assignments
 ## Models:
-## mr0: assessment_status ~ 1 + (1 | hse_user_id) + (1 | course_item_name)
-## mr1: assessment_status ~ 1 + vis_wt + (1 | hse_user_id) + (1 | course_item_name)
-##     npar    AIC    BIC  logLik deviance Chisq Df Pr(&gt;Chisq)
-## mr0    3 6892.9 6926.5 -3443.4   6886.9                    
-## mr1    4 7363.1 7408.0 -3677.6   7355.1     0  1          1</code></pre>
+## mr0: factor(first_attempt) ~ 1 + (1 | hse_user_id) + (1 | course_item_name)
+## mr1: factor(first_attempt) ~ 1 + vis_tw + (1 | hse_user_id) + (1 | 
+## mr1:     course_item_name)
+##     npar    AIC    BIC  logLik deviance  Chisq Df Pr(&gt;Chisq)    
+## mr0    3 496689 496723 -248342   496683                         
+## mr1    4 496297 496342 -248145   496289 393.76  1  &lt; 2.2e-16 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
 </div>
 </div>
 <div id="число-попыток-и-посещение-форума" class="section level2">
 <h2>3. Число попыток и посещение форума</h2>
 <p>Считаем только по выполненным заданиям.</p>
 <pre class="r"><code>visits_attempts &lt;- assignments %&gt;% filter(assessment_status == 1)</code></pre>
-<pre class="r"><code>mr2 &lt;- glmer(data = visits_attempts, attempts ~ 1 + vis_wt + (1|hse_user_id) + (1|course_item_name), family = &quot;poisson&quot;)
+<pre class="r"><code>mr2 &lt;- glmer(data = visits_attempts, attempts ~ 1 + vis_tw + (1|hse_user_id) + (1|course_item_name), family = &quot;poisson&quot;)
 summary(mr2)</code></pre>
 <pre><code>## Generalized linear mixed model fit by maximum likelihood (Laplace
 ##   Approximation) [glmerMod]
 ##  Family: poisson  ( log )
-## Formula: attempts ~ 1 + vis_wt + (1 | hse_user_id) + (1 | course_item_name)
+## Formula: attempts ~ 1 + vis_tw + (1 | hse_user_id) + (1 | course_item_name)
 ##    Data: visits_attempts
 ## 
 ##      AIC      BIC   logLik deviance df.resid 
-##  2268080  2268125 -1134036  2268072   543842 
+##  2236873  2236918 -1118433  2236865   544643 
 ## 
 ## Scaled residuals: 
 ##     Min      1Q  Median      3Q     Max 
-## -22.420  -0.820  -0.336   0.306 146.887 
+## -22.409  -0.816  -0.341   0.299 146.211 
 ## 
 ## Random effects:
 ##  Groups           Name        Variance Std.Dev.
-##  hse_user_id      (Intercept) 1.126    1.061   
-##  course_item_name (Intercept) 6.727    2.594   
-## Number of obs: 543846, groups:  hse_user_id, 34735; course_item_name, 454
+##  hse_user_id      (Intercept) 1.139    1.067   
+##  course_item_name (Intercept) 6.660    2.581   
+## Number of obs: 544647, groups:  hse_user_id, 34735; course_item_name, 454
 ## 
 ## Fixed effects:
 ##               Estimate Std. Error z value Pr(&gt;|z|)    
-## (Intercept) -4.029e-01  1.047e-01  -3.847  0.00012 ***
-## vis_wt       6.511e-03  3.804e-05 171.169  &lt; 2e-16 ***
+## (Intercept) -4.232e-01  8.893e-02  -4.759 1.95e-06 ***
+## vis_tw       6.503e-03  3.888e-05 167.254  &lt; 2e-16 ***
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
 ## Correlation of Fixed Effects:
 ##        (Intr)
-## vis_wt -0.001
+## vis_tw -0.001
 ## convergence code: 0
-## Model failed to converge with max|grad| = 0.00221952 (tol = 0.002, component 1)
+## Model failed to converge with max|grad| = 0.00335742 (tol = 0.002, component 1)
 ## Model is nearly unidentifiable: very large eigenvalue
 ##  - Rescale variables?
 ## Model is nearly unidentifiable: large eigenvalue ratio
 ##  - Rescale variables?</code></pre>
 <pre class="r"><code>mrr2 &lt;- summary(mr2)</code></pre>
-<pre><code>## Попытка после которой студент выполнит задание, без посещения форума равна 0.40</code></pre>
-<pre><code>## С увеличением числа посещенных страниц на 1 пункт число попыток увеличиться в 0.50 раз</code></pre>
-<pre><code>## Например, если студент посетил форум 25 раз, то он выполнит задание с 0.44 попытки</code></pre>
+<pre><code>## Ожидаемое число попыток, чтобы выполнить задание, без посещения форума равно 0.65.</code></pre>
+<pre><code>## С увеличением числа посещенных страниц на 1 пункт ожидаемое число попыток увеличиться в 1.01 раз, т.е. на 0 %.</code></pre>
+<pre><code>## Например, если студент посетил форум 25 раз, то ожидаемое число попыток, которое он сделает равно 0.77.</code></pre>
 </div>
 <div id="выводы" class="section level2">
 <h2>Выводы</h2>
 <ol style="list-style-type: decimal">
-<li>По модифицированной модели Раша существует значимая положительная логистическая связь между посещением форума и вероятностью выполнить задание c учетом индивидуальных различий студентов и заданий.</li>
-<li>С увеличением на 1 пункт посещения форума вероятность, что студент выполнит задание увеличивается в 1.01 раз</li>
-<li>Число посещений форума коррелирует с количеством попыток положительно.</li>
-<li>С увеличением числа посещенных страниц на 1 пункт число попыток измениться в 0.50 раз.</li>
+<li>По модифицированной модели Раша существует значимая отрицательная связь между количеством посещенных страниц форума и вероятностью выполнить задание c первой попытки с учетом индивидуальных различий студентов и заданий.</li>
+<li>С увеличением на 1 пункт посещения форума отношение шансов уменьшается в -0.04 раз. Возможно, если первая попытка будет неудачной, студент будет чаще заходить на форум.</li>
+<li>Число посещений форума коррелирует с количеством попыток положительно. С увеличением числа посещенных страниц на 1 пункт ожидаемое число попыток увеличиться в 1.01 раз.</li>
+<li>Возможно чем больше попыток человек совершает, тем чаще он будет заходить на форум.</li>
+<li>Следует найти число посещенных старниц во время первой попытки.</li>
 </ol>
 </div>
 

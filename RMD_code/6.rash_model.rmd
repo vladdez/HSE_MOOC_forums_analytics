@@ -28,9 +28,7 @@ remove_outliers <- function(x, na.rm = TRUE, ...) {
 ```{r}
 wd <- getwd()
 assignments <- fread("unzip -cq ../data/assignments.zip")  %>% group_by(course_name) %>%
-  mutate(course_item_type_desc = dplyr::recode(course_item_type_desc, `programming assignment` = "programming", `exam` = "test")) %>%
-  filter(course_item_type_desc != "lecture") %>% mutate(course_item_type_desc = factor(course_item_type_desc)) %>%
-  filter(assessment_status == 1 | assessment_status == 0)
+  filter(course_item_type_desc != "lecture") %>% mutate(course_item_type_desc = factor(course_item_type_desc))
 
 ```
 
@@ -44,15 +42,16 @@ assignments <- fread("unzip -cq ../data/assignments.zip")  %>% group_by(course_n
 
 ### Содержание отчета
  
-  1. Дисперсия переменной assessment_status
-  2. Связь вероятности выполения задания с посещением форума  во время выполнения задания
-  3. Связь числа попыток с посещением форума во время выполнения задания
+  1. Дисперсия переменной assessment_status;
+  2. Связь вероятности выполнения задания с посещением форума во время выполнения задания;
+  3. Связь числа попыток с посещением форума во время выполнения задания.
 
 ## Описание переменных
-  
+ 
   - **attempts** - Попытки за задание. Сколько попыток этот студент сделал при решении этого задания;
-  - **vis_wt** - Посещения форума. Сколько раз этот студент посещал форум во время прохождения этого задания;
+  - **vis_tw** - Посещения форума. Сколько раз этот студент посещал форум во время прохождения этого задания. Важно: считается посещение форума за все время пока студент взаимодействует с задачей;
   - **assessment_status** - Статус выполнения задания: 1 - удалось решить, 0 - не удалось решить.
+  - **first_attempt** - Статус выполнения задания с первой попытки: 1 - удалось решить с первой попытки, 0 - не удалось решить с первой попытки.
   - **assignments** - база данных, с данными на уровне студентов
   - **assessment_id** - токен задания;
   - **hse_user_id** - токен студента;
@@ -70,6 +69,7 @@ assignments <- fread("unzip -cq ../data/assignments.zip")  %>% group_by(course_n
 
 ```{r}
 table(assignments$assessment_status)
+table(assignments$first_attempt)
 ```
 #### Распределение переменной attempts
 
@@ -77,37 +77,41 @@ table(assignments$assessment_status)
 summary(assignments$attempts)
 ```
 
-## 2. Вероятность выполнить задание
+## 2. Вероятность выполнить задание с первой попытки
 
 #### Дисперсия статуса выполнения задания по студентам и заданиям
 
 ```{r}
-mr0 <- glmer(data = assignments, assessment_status ~ 1 + (1|hse_user_id) + (1|course_item_name), family = "binomial")
+mr0 <- glmer(data = assignments, factor(first_attempt) ~ 1 + (1|hse_user_id) + (1|course_item_name), family = "binomial")
 summary(mr0)
 ```
 
-#### Вероятность выполнить задание и посещение форума во время выполения задания
+#### Вероятность выполнить задание с первой попытки и посещение форума во время выполнения задания
 
 ```{r}
-mr1 <- glmer(data = assignments, assessment_status ~ 1 + vis_wt + (1|hse_user_id) + (1|course_item_name), family = "binomial")
+mr1 <- glmer(data = assignments, factor(first_attempt) ~ 1 + vis_tw + (1|hse_user_id) + (1|course_item_name), family = "binomial")
 summary(mr1)
 mrr1 <- summary(mr1)
 ```
 
 
 ```{r, echo=FALSE}
-cat(sprintf("Вероятность, что студент выполнит задание без посещения форума равна %.6f к 1\n", exp(mrr1$coefficients[1])))
-cat(sprintf("С увеличением на 1 пункт посещения форума вероятность, что студент выполнит задание увеличивается в %.2f раз\n", exp(mrr1$coefficients[2])))
-cat(sprintf("Например, если студент посетил форум 25 раз,\nто вероятность, что студент выполнит задание будет равна %.6f к 1\n\n", exp(mrr1$coefficients[1] + mrr1$coefficients[2]* 25) ))
+cat(sprintf("Вероятность, что студент выполнит задание с первой попытки без посещения форума равна %.6f.\n", invlogit(mrr1$coefficients[1])))
+cat(sprintf("С увеличением на 1 пункт посещения форума отношение шансов изменится в %.2f раз\n", exp(mrr1$coefficients[1] + mrr1$coefficients[2]*6) - exp(mrr1$coefficients[1] + mrr1$coefficients[2]*5)))
+cat(sprintf("Например, если студент посетил форум 1 раз,\nто отношение шансов, что студент выполнит задание будет равно %.2f.\n\n", exp(mrr1$coefficients[1] + mrr1$coefficients[2])))
+cat(sprintf("А если студент посетил форум 25 раз,\nто отношение шансов, что студент выполнит задание будет равно %.2f.\n\n", exp(mrr1$coefficients[1] + mrr1$coefficients[2]* 25)))
+cat(sprintf("С увеличением на 1 пункт посещения форума вероятность выполнить задание с первой попытки изменится в %.5f раз\n", invlogit(mrr1$coefficients[1] + mrr1$coefficients[2]*6) - invlogit(mrr1$coefficients[1] + mrr1$coefficients[2]*5)))
+cat(sprintf("Например, если студент посетил форум 1 раз,\nто вероятность, что студент выполнит задание будет равна %.2f к 1\n\n", invlogit(mrr1$coefficients[1] + mrr1$coefficients[2])))
+cat(sprintf("А если студент посетил форум 25 раз,\nто вероятность, что студент выполнит задание будет равна %.2f к 1\n\n", invlogit(mrr1$coefficients[1] + mrr1$coefficients[2]* 25)))
 ```
 
 ```{r}
 anova(mr0, mr1)
 ```
 
-## 3. Число попыток и посещение форума 
+## 3. Число попыток и посещение форума
 
-Считаем только по выполненным заданиям. 
+Считаем только по выполненным заданиям.
 
 ```{r}
 visits_attempts <- assignments %>% filter(assessment_status == 1)
@@ -115,22 +119,25 @@ visits_attempts <- assignments %>% filter(assessment_status == 1)
 ```
 
 ```{r}
-mr2 <- glmer(data = visits_attempts, attempts ~ 1 + vis_wt + (1|hse_user_id) + (1|course_item_name), family = "poisson")
+mr2 <- glmer(data = visits_attempts, attempts ~ 1 + vis_tw + (1|hse_user_id) + (1|course_item_name), family = "poisson")
 summary(mr2)
 mrr2 <- summary(mr2)
 ```
 
 ```{r, echo=FALSE}
-cat(sprintf("Попытка после которой студент выполнит задание, без посещения форума равна %.2f\n", invlogit(mrr2$coefficients[1])))
-cat(sprintf("С увеличением числа посещенных страниц на 1 пункт число попыток увеличиться в %.2f раз\n", invlogit(mrr2$coefficients[2])))
-cat(sprintf("Например, если студент посетил форум 25 раз, то он выполнит задание с %.2f попытки\n\n", invlogit(mrr2$coefficients[1] + mrr2$coefficients[2]* 25) ))
+cat(sprintf("Ожидаемое число попыток, чтобы выполнить задание, без посещения форума равно %.2f.\n", exp(mrr2$coefficients[1])))
+cat(sprintf("С увеличением числа посещенных страниц на 1 пункт ожидаемое число попыток увеличиться в %.2f раз, т.е. на %d %%.\n", exp(mrr2$coefficients[2]), round( exp(mrr2$coefficients[2] - 1))*100, digits = 0))
+cat(sprintf("Например, если студент посетил форум 25 раз, то ожидаемое число попыток, которое он сделает равно %.2f.\n\n", exp(mrr2$coefficients[1] + mrr2$coefficients[2]* 25) ))
 ```
 
 ## Выводы
 
-  1. По модифицированной модели Раша существует значимая положительная логистическая связь между посещением форума и вероятностью выполнить задание c учетом индивидуальных различий студентов и заданий. 
-  2. С увеличением на 1 пункт посещения форума вероятность, что студент выполнит задание увеличивается в 1.01 раз
-  3. Число посещений форума коррелирует с количеством попыток положительно.
-  4. С увеличением числа посещенных страниц на 1 пункт число попыток измениться в 0.50 раз.
+  1. По модифицированной модели Раша существует значимая отрицательная связь между количеством посещенных страниц форума и вероятностью выполнить задание c первой попытки с учетом индивидуальных различий студентов и заданий.
+  2.  С увеличением на 1 пункт посещения форума отношение шансов уменьшается в -0.04 раз. Возможно, если первая попытка будет неудачной, студент будет чаще заходить на форум.
+  3. Число посещений форума коррелирует с количеством попыток положительно. С увеличением числа посещенных страниц на 1 пункт ожидаемое число попыток увеличиться в 1.01 раз.
+  4. Возможно чем больше попыток человек совершает, тем чаще он будет заходить на форум.
+  5. Следует найти число посещенных старниц во время первой попытки.
+
+
 
 
