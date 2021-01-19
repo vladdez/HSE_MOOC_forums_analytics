@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2021-01-19T11:17:41.904Z" agent="5.0 (X11)" etag="SC_sgRtQkC_t2425fgMj" version="14.2.4" type="github">
+<mxfile host="app.diagrams.net" modified="2021-01-19T11:19:30.439Z" agent="5.0 (X11)" etag="9PsWlEDiTSQygZg0p662" version="14.2.4" type="github">
   <diagram name="Page-1" id="9f46799a-70d6-7492-0946-bef42562c5a5">
     <mxGraphModel dx="1436" dy="722" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="850" background="#ffffff" math="0" shadow="0">
       <root>
@@ -272,7 +272,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="UFu44BDGkwiWeATgF32q-33" value="Type of assigment" style="swimlane;html=1;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeLast=0;collapsible=1;marginBottom=0;swimlaneFillColor=#ffffff;rounded=0;shadow=0;comic=0;labelBackgroundColor=none;strokeWidth=1;fillColor=none;fontFamily=Verdana;fontSize=12" vertex="1" parent="1">
-          <mxGeometry x="50" y="605" width="160" height="60" as="geometry" />
+          <mxGeometry x="40" y="700" width="160" height="60" as="geometry" />
         </mxCell>
         <mxCell id="UFu44BDGkwiWeATgF32q-34" value="Programming or not" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;whiteSpace=wrap;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="UFu44BDGkwiWeATgF32q-33">
           <mxGeometry y="26" width="160" height="26" as="geometry" />
@@ -289,16 +289,16 @@
         <mxCell id="UFu44BDGkwiWeATgF32q-57" value="Number of visited pages per student " style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;whiteSpace=wrap;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="UFu44BDGkwiWeATgF32q-38">
           <mxGeometry y="90" width="220" height="38" as="geometry" />
         </mxCell>
-        <mxCell id="UFu44BDGkwiWeATgF32q-42" value="" style="endArrow=classic;html=1;strokeColor=#99CCFF;fillColor=#E6D0DE;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=1.006;exitY=0.769;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="UFu44BDGkwiWeATgF32q-34" target="UFu44BDGkwiWeATgF32q-40">
+        <mxCell id="UFu44BDGkwiWeATgF32q-42" value="" style="endArrow=classic;html=1;strokeColor=#99CCFF;fillColor=#E6D0DE;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" target="UFu44BDGkwiWeATgF32q-40">
           <mxGeometry relative="1" as="geometry">
-            <mxPoint x="240" y="640" as="sourcePoint" />
+            <mxPoint x="201" y="739" as="sourcePoint" />
             <mxPoint x="300" y="500" as="targetPoint" />
             <Array as="points" />
           </mxGeometry>
         </mxCell>
         <mxCell id="UFu44BDGkwiWeATgF32q-43" value="yes" style="edgeLabel;resizable=0;html=1;align=center;verticalAlign=middle;" connectable="0" vertex="1" parent="UFu44BDGkwiWeATgF32q-42">
           <mxGeometry relative="1" as="geometry">
-            <mxPoint x="20.229999999999997" y="2.8200000000000003" as="offset" />
+            <mxPoint x="29.72" y="-25.14" as="offset" />
           </mxGeometry>
         </mxCell>
         <mxCell id="UFu44BDGkwiWeATgF32q-44" value="Rate of student-assigment visits" style="swimlane;html=1;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeLast=0;collapsible=1;marginBottom=0;swimlaneFillColor=#ffffff;rounded=0;shadow=0;comic=0;labelBackgroundColor=none;strokeWidth=1;fillColor=none;fontFamily=Verdana;fontSize=12" vertex="1" parent="1">
@@ -307,18 +307,16 @@
         <mxCell id="UFu44BDGkwiWeATgF32q-45" value="number of student-assigments with forum visits / number of student-asigments" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;whiteSpace=wrap;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="UFu44BDGkwiWeATgF32q-44">
           <mxGeometry y="26" width="220" height="54" as="geometry" />
         </mxCell>
-        <mxCell id="UFu44BDGkwiWeATgF32q-48" value="" style="endArrow=classic;html=1;strokeColor=#99CCFF;fillColor=#E6D0DE;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="UFu44BDGkwiWeATgF32q-33" target="UFu44BDGkwiWeATgF32q-45">
+        <mxCell id="UFu44BDGkwiWeATgF32q-48" value="" style="endArrow=classic;html=1;strokeColor=#99CCFF;fillColor=#E6D0DE;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="UFu44BDGkwiWeATgF32q-34" target="UFu44BDGkwiWeATgF32q-45">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="230.96000000000004" y="635.9939999999999" as="sourcePoint" />
             <mxPoint x="350" y="661" as="targetPoint" />
-            <Array as="points">
-              <mxPoint x="220" y="753" />
-            </Array>
+            <Array as="points" />
           </mxGeometry>
         </mxCell>
         <mxCell id="UFu44BDGkwiWeATgF32q-49" value="yes" style="edgeLabel;resizable=0;html=1;align=center;verticalAlign=middle;" connectable="0" vertex="1" parent="UFu44BDGkwiWeATgF32q-48">
           <mxGeometry relative="1" as="geometry">
-            <mxPoint x="51.75" y="24.31" as="offset" />
+            <mxPoint x="27.79" y="13.909999999999998" as="offset" />
           </mxGeometry>
         </mxCell>
         <mxCell id="UFu44BDGkwiWeATgF32q-50" value="Attempts" style="swimlane;html=1;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeLast=0;collapsible=1;marginBottom=0;swimlaneFillColor=#ffffff;rounded=0;shadow=0;comic=0;labelBackgroundColor=none;strokeWidth=1;fillColor=none;fontFamily=Verdana;fontSize=12" vertex="1" parent="1">
@@ -327,18 +325,16 @@
         <mxCell id="UFu44BDGkwiWeATgF32q-51" value="number per student and assignment" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;whiteSpace=wrap;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="UFu44BDGkwiWeATgF32q-50">
           <mxGeometry y="26" width="220" height="34" as="geometry" />
         </mxCell>
-        <mxCell id="UFu44BDGkwiWeATgF32q-53" value="" style="endArrow=classic;html=1;strokeColor=#99CCFF;fillColor=#E6D0DE;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="UFu44BDGkwiWeATgF32q-33" target="UFu44BDGkwiWeATgF32q-51">
+        <mxCell id="UFu44BDGkwiWeATgF32q-53" value="" style="endArrow=classic;html=1;strokeColor=#99CCFF;fillColor=#E6D0DE;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="UFu44BDGkwiWeATgF32q-34" target="UFu44BDGkwiWeATgF32q-51">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="140" y="650" as="sourcePoint" />
             <mxPoint x="260" y="763" as="targetPoint" />
-            <Array as="points">
-              <mxPoint x="140" y="763" />
-            </Array>
+            <Array as="points" />
           </mxGeometry>
         </mxCell>
         <mxCell id="UFu44BDGkwiWeATgF32q-54" value="yes" style="edgeLabel;resizable=0;html=1;align=center;verticalAlign=middle;" connectable="0" vertex="1" parent="UFu44BDGkwiWeATgF32q-53">
           <mxGeometry relative="1" as="geometry">
-            <mxPoint x="100.61" y="75.42999999999999" as="offset" />
+            <mxPoint x="27.880000000000003" y="36.85999999999999" as="offset" />
           </mxGeometry>
         </mxCell>
         <mxCell id="UFu44BDGkwiWeATgF32q-55" value="" style="endArrow=classic;html=1;strokeColor=#99CCFF;fillColor=#E6D0DE;entryX=1;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="UFu44BDGkwiWeATgF32q-57" target="UFu44BDGkwiWeATgF32q-51">
