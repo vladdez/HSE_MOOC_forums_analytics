@@ -1,0 +1,82 @@
+course_branch_id,course_item_id,atom_id,atom_version_id,course_branch_atom_is_frozen,course_branch_item_name,is_graded,course_item_type_id,interaction_id,course_branch_item_optional,course_lesson_id,course_branch_item_order,is_in_honor_lesson
+"01XLylXyEeWKXg4Y7_tPaw","XfbX3","j7z_im5tEeqqUQqyAN3FGw",1,f,"Применение классификации в решении задач частичного обучения",f,101,"01XLylXyEeWKXg4Y7_tPaw~XfbX3",,"ydS9W",2,f
+"01XLylXyEeWKXg4Y7_tPaw","xlg58","j6yEyW5tEeqKpQ5hoCwyOw",1,f,"Проблема переобучения",f,101,"01XLylXyEeWKXg4Y7_tPaw~xlg58",,"Oz2bJ",4,f
+"01XLylXyEeWKXg4Y7_tPaw","Flcsd","j72bm25tEeqYWRJ1oMh_eQ",1,f,"Градиентные методы численной минимизации и алгоритм SG",f,101,"01XLylXyEeWKXg4Y7_tPaw~Flcsd",,"Oz2bJ",1,f
+"01XLylXyEeWKXg4Y7_tPaw","5Or9D","2hG9BGRTEeqojApQHw-Spw",1,f,"Об университете",f,103,"2hG9BGRTEeqojApQHw-Spw",,"rIBKM",1,f
+"01XLylXyEeWKXg4Y7_tPaw","J1SH8","j6JyM25tEeqfSgqsMVXuLQ",1,f,"Проект: предсказания победителя в онлайн-игре",t,104,"01XLylXyEeWKXg4Y7_tPaw~J1SH8",,"TWKZE",0,f
+"01XLylXyEeWKXg4Y7_tPaw","xCdqN","j19OvW5tEeq5KxLZrHcuzw",1,f,"Оценивание качества",f,101,"01XLylXyEeWKXg4Y7_tPaw~xCdqN",,"7hdY4",4,f
+"01XLylXyEeWKXg4Y7_tPaw","ZTkp7","j94bsW5tEeq5KxLZrHcuzw",1,f,"Нейронные сети. Стандартные эвристики — 1",f,101,"01XLylXyEeWKXg4Y7_tPaw~ZTkp7",,"i4xdu",2,f
+"01XLylXyEeWKXg4Y7_tPaw","Cw2la","j9QJzG5tEeqYWRJ1oMh_eQ",1,f,"Приветствие и вводная информация",f,103,"01XLylXyEeWKXg4Y7_tPaw~Cw2la",,"rIBKM",2,f
+"01XLylXyEeWKXg4Y7_tPaw","IVuAc","j3uxHm5tEeq6mQ5ATQdkUw",1,f,"Метрики качества классификации — 1",f,101,"01XLylXyEeWKXg4Y7_tPaw~IVuAc",,"pV0JI",0,f
+"01XLylXyEeWKXg4Y7_tPaw","GUife","j6xduG5tEeqKpQ5hoCwyOw",1,f,"Постановка задачи частичного обучения",f,101,"01XLylXyEeWKXg4Y7_tPaw~GUife",,"ydS9W",0,f
+"01XLylXyEeWKXg4Y7_tPaw","2aeJ2",,,,"Анкета",f,19,"01XLylXyEeWKXg4Y7_tPaw~2aeJ2",,"nwr8n",0,f
+"01XLylXyEeWKXg4Y7_tPaw","KKic0","j9NG2G5tEeq__RIRDbH5Ew",1,f,"Примеры применения машинного обучения — 2",f,101,"01XLylXyEeWKXg4Y7_tPaw~KKic0",,"vI0o3",2,f
+"01XLylXyEeWKXg4Y7_tPaw","Ey95r","j6V_6G5tEeqqUQqyAN3FGw",1,f,"Метод главных компонент",f,101,"01XLylXyEeWKXg4Y7_tPaw~Ey95r",,"Iqxp1",0,f
+"01XLylXyEeWKXg4Y7_tPaw","vfD6M","j192Nm5tEeqqUQqyAN3FGw",1,f,"Метрики качества классификации",t,111,"01XLylXyEeWKXg4Y7_tPaw~vfD6M",,"pV0JI",4,f
+"01XLylXyEeWKXg4Y7_tPaw","t9PG4","j-PBsm5tEeqvJA7ezzOWHw",1,f,"Обнаружение выбросов",f,101,"01XLylXyEeWKXg4Y7_tPaw~t9PG4",,"rv9fI",3,f
+"01XLylXyEeWKXg4Y7_tPaw","3Ykvm","j7vuYW5tEeqvJA7ezzOWHw",1,f,"Нейронные сети",t,106,"01XLylXyEeWKXg4Y7_tPaw~3Ykvm",,"i4xdu",4,f
+"01XLylXyEeWKXg4Y7_tPaw","yWVid","j-HsQm5tEeq5KxLZrHcuzw",1,f,"Уменьшение количества цветов изображения",f,111,"01XLylXyEeWKXg4Y7_tPaw~yWVid",,"lUwz8",3,f
+"01XLylXyEeWKXg4Y7_tPaw","eblyU","j8t9-W5tEeqwcArEW1MYhw",1,f,"Выбор числа соседей",t,111,"01XLylXyEeWKXg4Y7_tPaw~eblyU",,"rv9fI",5,f
+"01XLylXyEeWKXg4Y7_tPaw","jCkvu","j5u8Fm5tEeq__RIRDbH5Ew",1,f,"Метод ближайших соседей",f,101,"01XLylXyEeWKXg4Y7_tPaw~jCkvu",,"rv9fI",0,f
+"01XLylXyEeWKXg4Y7_tPaw","SwQMp","j-Vvem5tEeq7LxKLX1wHkQ",1,f,"Обработка пропусков. Достоинства и недостатки решающих деревьев.",f,101,"01XLylXyEeWKXg4Y7_tPaw~SwQMp",,"atzjh",2,f
+"01XLylXyEeWKXg4Y7_tPaw","ZxQM9","j744N25tEeq__RIRDbH5Ew",1,f,"Регуляризованная логистическая регрессия",f,101,"01XLylXyEeWKXg4Y7_tPaw~ZxQM9",,"LWzLO",2,f
+"01XLylXyEeWKXg4Y7_tPaw","6uVOS","j_eX7W5tEeq7LxKLX1wHkQ",1,f,"Работа с категориальными и текстовыми признаками",f,101,"01XLylXyEeWKXg4Y7_tPaw~6uVOS",,"7hdY4",2,f
+"01XLylXyEeWKXg4Y7_tPaw","EygCE","j3guhG5tEeq__RIRDbH5Ew",1,f,"Обзор алгоритмов",f,101,"01XLylXyEeWKXg4Y7_tPaw~EygCE",,"7hdY4",5,f
+"01XLylXyEeWKXg4Y7_tPaw","woDpy","j8jmyW5tEeq7LxKLX1wHkQ",1,f,"Иерархическая кластеризация",f,101,"01XLylXyEeWKXg4Y7_tPaw~woDpy",,"lUwz8",1,f
+"01XLylXyEeWKXg4Y7_tPaw","gXjdV","j1i-925tEeqwcArEW1MYhw",1,f,"Выбор метрики",t,111,"01XLylXyEeWKXg4Y7_tPaw~gXjdV",,"rv9fI",6,f
+"01XLylXyEeWKXg4Y7_tPaw","2dCvE","j5r48W5tEeq6mQ5ATQdkUw",1,f,"Метод стохастического градиента. Достоинства и недостатки.",f,101,"01XLylXyEeWKXg4Y7_tPaw~2dCvE",,"Oz2bJ",3,f
+"01XLylXyEeWKXg4Y7_tPaw","okkCL","j6eiYG5tEeq5KxLZrHcuzw",1,f,"Предобработка данных",f,101,"01XLylXyEeWKXg4Y7_tPaw~okkCL",,"7hdY4",3,f
+"01XLylXyEeWKXg4Y7_tPaw","tkxmU","j6ABp25tEeqKpQ5hoCwyOw",1,f,"FAQ",f,103,"01XLylXyEeWKXg4Y7_tPaw~tkxmU",,"rIBKM",5,f
+"01XLylXyEeWKXg4Y7_tPaw","MptFX","j4dJHm5tEeq5KxLZrHcuzw",1,f,"Логистическая регрессия",t,111,"01XLylXyEeWKXg4Y7_tPaw~MptFX",,"LWzLO",3,f
+"01XLylXyEeWKXg4Y7_tPaw","EQzGo","j44nK25tEeqNSQo1CTCw7w",1,f,"Метод опорных векторов. Обобщение для нелинейного случая",f,101,"01XLylXyEeWKXg4Y7_tPaw~EQzGo",,"xJ3nu",1,f
+"01XLylXyEeWKXg4Y7_tPaw","CLOS0","j91YVm5tEeqfSgqsMVXuLQ",1,f,"Формальная постановка задачи машинного обучения",f,101,"01XLylXyEeWKXg4Y7_tPaw~CLOS0",,"vI0o3",0,f
+"01XLylXyEeWKXg4Y7_tPaw","1ckPk","j66nqW5tEeqqUQqyAN3FGw",1,f,"Метрические методы классификации в задаче восстановления регрессии",f,101,"01XLylXyEeWKXg4Y7_tPaw~1ckPk",,"rv9fI",2,f
+"01XLylXyEeWKXg4Y7_tPaw","ERI91","j73CZW5tEeqfSgqsMVXuLQ",1,f,"Алгоритм SAG",f,101,"01XLylXyEeWKXg4Y7_tPaw~ERI91",,"Oz2bJ",2,f
+"01XLylXyEeWKXg4Y7_tPaw","dnKdZ","j3s7aG5tEeqYWRJ1oMh_eQ",1,f,"Этапы анализа данных",f,101,"01XLylXyEeWKXg4Y7_tPaw~dnKdZ",,"7hdY4",0,f
+"01XLylXyEeWKXg4Y7_tPaw","w7Rqc","j3ijhW5tEeqKpQ5hoCwyOw",1,f,"Нормализация признаков",t,111,"01XLylXyEeWKXg4Y7_tPaw~w7Rqc",,"Oz2bJ",6,f
+"01XLylXyEeWKXg4Y7_tPaw","29ymE","j58W0m5tEeqfSgqsMVXuLQ",1,f,"Решающие деревья",t,106,"01XLylXyEeWKXg4Y7_tPaw~29ymE",,"atzjh",5,f
+"01XLylXyEeWKXg4Y7_tPaw","NSX5A","j-0PyG5tEeqfSgqsMVXuLQ",1,f,"Пример применения логистической регрессии",f,101,"01XLylXyEeWKXg4Y7_tPaw~NSX5A",,"LWzLO",1,f
+"01XLylXyEeWKXg4Y7_tPaw","pwU8B","2Rw5L2RTEeqb1goG_fwuWQ",1,f,"Об университете",f,101,"2Rw5L2RTEeqb1goG_fwuWQ",,"rIBKM",0,f
+"01XLylXyEeWKXg4Y7_tPaw","NeN3h","j7yKWm5tEeqKpQ5hoCwyOw",1,f,"Гребневая регрессия",f,101,"01XLylXyEeWKXg4Y7_tPaw~NeN3h",,"AT8MH",1,f
+"01XLylXyEeWKXg4Y7_tPaw","D0VBG","j58-t25tEeq7LxKLX1wHkQ",1,f,"Основные понятия машинного обучения",t,106,"01XLylXyEeWKXg4Y7_tPaw~D0VBG",,"vI0o3",4,f
+"01XLylXyEeWKXg4Y7_tPaw","18ElO","j1jmEW5tEeqfSgqsMVXuLQ",1,f,"Метод опорных векторов",f,101,"01XLylXyEeWKXg4Y7_tPaw~18ElO",,"xJ3nu",0,f
+"01XLylXyEeWKXg4Y7_tPaw","Lmbqi","j69DdG5tEeqfSgqsMVXuLQ",1,f,"Нейронные сети. Метод обратного распространения ошибки",f,101,"01XLylXyEeWKXg4Y7_tPaw~Lmbqi",,"i4xdu",1,f
+"01XLylXyEeWKXg4Y7_tPaw","3rfaB","j-SE6W5tEeq__RIRDbH5Ew",1,f,"Нейронные сети. Стандартные эвристики — 2",f,101,"01XLylXyEeWKXg4Y7_tPaw~3rfaB",,"i4xdu",3,f
+"01XLylXyEeWKXg4Y7_tPaw","wx9SC","j49gHW5tEeqvJA7ezzOWHw",1,f,"Метрические методы",t,106,"01XLylXyEeWKXg4Y7_tPaw~wx9SC",,"rv9fI",4,f
+"01XLylXyEeWKXg4Y7_tPaw","UzPbw","j43_325tEeq5KxLZrHcuzw",1,f,"Составление фондового индекса",t,111,"01XLylXyEeWKXg4Y7_tPaw~UzPbw",,"Iqxp1",1,f
+"01XLylXyEeWKXg4Y7_tPaw","bNcbn","j1_rN25tEeqYWRJ1oMh_eQ",1,f,"Работа с числовыми признаками",f,101,"01XLylXyEeWKXg4Y7_tPaw~bNcbn",,"7hdY4",1,f
+"01XLylXyEeWKXg4Y7_tPaw","89DSw","j_DhLG5tEeq7LxKLX1wHkQ",1,f,"Метод окна Парзена",f,101,"01XLylXyEeWKXg4Y7_tPaw~89DSw",,"rv9fI",1,f
+"01XLylXyEeWKXg4Y7_tPaw","57ezh","j9Ua6m5tEeqwcArEW1MYhw",1,f,"Размер случайного леса",t,111,"01XLylXyEeWKXg4Y7_tPaw~57ezh",,"RYaUM",3,f
+"01XLylXyEeWKXg4Y7_tPaw","50VrR","j6CeMG5tEeqvJA7ezzOWHw",1,f,"Опорные объекты",t,111,"01XLylXyEeWKXg4Y7_tPaw~50VrR",,"xJ3nu",3,f
+"01XLylXyEeWKXg4Y7_tPaw","n6JbA","j_3_uW5tEeqfSgqsMVXuLQ",1,f,"Бэггинг и случайный лес",f,101,"01XLylXyEeWKXg4Y7_tPaw~n6JbA",,"RYaUM",0,f
+"01XLylXyEeWKXg4Y7_tPaw","pZpWz","j7z_6G5tEeq7LxKLX1wHkQ",1,f,"Примеры применения машинного обучения — 1",f,101,"01XLylXyEeWKXg4Y7_tPaw~pZpWz",,"vI0o3",1,f
+"01XLylXyEeWKXg4Y7_tPaw","fPkI2","j5xYhm5tEeq7LxKLX1wHkQ",1,f,"Метрики качества классификации — 2",f,101,"01XLylXyEeWKXg4Y7_tPaw~fPkI2",,"pV0JI",1,f
+"01XLylXyEeWKXg4Y7_tPaw","o4Ij7","j_Gj7W5tEeqNSQo1CTCw7w",1,f,"Кластеризация",f,101,"01XLylXyEeWKXg4Y7_tPaw~o4Ij7",,"lUwz8",0,f
+"01XLylXyEeWKXg4Y7_tPaw","wR3Tx","j-xMbG5tEeqwcArEW1MYhw",1,f,"Видеоролик о курсе",f,101,"01XLylXyEeWKXg4Y7_tPaw~wR3Tx",,"rIBKM",3,f
+"01XLylXyEeWKXg4Y7_tPaw","5RcrL","j4dJ325tEeq6mQ5ATQdkUw",1,f,"Решение задачи многомерной линейной регрессии с помощью сингулярного разложения",f,101,"01XLylXyEeWKXg4Y7_tPaw~5RcrL",,"AT8MH",0,f
+"01XLylXyEeWKXg4Y7_tPaw","8G3Xu","j4eYBG5tEeq7LxKLX1wHkQ",1,f,"Логистическая регрессия",f,101,"01XLylXyEeWKXg4Y7_tPaw~8G3Xu",,"LWzLO",0,f
+"01XLylXyEeWKXg4Y7_tPaw","d9Rvs","j4zvBW5tEeq__RIRDbH5Ew",1,f,"Алгоритм построения решающего дерева",f,101,"01XLylXyEeWKXg4Y7_tPaw~d9Rvs",,"atzjh",1,f
+"01XLylXyEeWKXg4Y7_tPaw","u08ys","j5aMD25tEeqvJA7ezzOWHw",1,f,"Предобработка данных в Pandas",t,111,"01XLylXyEeWKXg4Y7_tPaw~u08ys",,"C6hMo",2,f
+"01XLylXyEeWKXg4Y7_tPaw","DVbEI","j1t-8m5tEeq7LxKLX1wHkQ",1,f,"Важность признаков",t,111,"01XLylXyEeWKXg4Y7_tPaw~DVbEI",,"atzjh",4,f
+"01XLylXyEeWKXg4Y7_tPaw","EHP63","j91YzG5tEeqKpQ5hoCwyOw",1,f,"Метод стохастического градиента. Постановка задачи.",f,101,"01XLylXyEeWKXg4Y7_tPaw~EHP63",,"Oz2bJ",0,f
+"01XLylXyEeWKXg4Y7_tPaw","NdyLO","j-zBp25tEeqfSgqsMVXuLQ",1,f,"Анализ текстов",t,111,"01XLylXyEeWKXg4Y7_tPaw~NdyLO",,"xJ3nu",4,f
+"01XLylXyEeWKXg4Y7_tPaw","iSyMz","j30QKm5tEeqNSQo1CTCw7w",1,f,"Метод LASSO",f,101,"01XLylXyEeWKXg4Y7_tPaw~iSyMz",,"AT8MH",2,f
+"01XLylXyEeWKXg4Y7_tPaw","hsMjO","j67Oim5tEeqYWRJ1oMh_eQ",1,f,"Способы устранения недостатков решающих деревьев",f,101,"01XLylXyEeWKXg4Y7_tPaw~hsMjO",,"atzjh",3,f
+"01XLylXyEeWKXg4Y7_tPaw","R0GjN","j-4iC25tEeq7LxKLX1wHkQ",1,f,"Особенности метода опорных векторов",t,106,"01XLylXyEeWKXg4Y7_tPaw~R0GjN",,"xJ3nu",2,f
+"01XLylXyEeWKXg4Y7_tPaw","CDYuC","j6eimW5tEeqYWRJ1oMh_eQ",1,f,"Применение кластеризации в решении задач частичного обучения",f,101,"01XLylXyEeWKXg4Y7_tPaw~CDYuC",,"ydS9W",1,f
+"01XLylXyEeWKXg4Y7_tPaw","QFvJY","j74RUm5tEeq6mQ5ATQdkUw",1,f,"Линейная регрессия: прогноз оклада по описанию вакансии",t,111,"01XLylXyEeWKXg4Y7_tPaw~QFvJY",,"AT8MH",3,f
+"01XLylXyEeWKXg4Y7_tPaw","5O43E","j92ma25tEeqwcArEW1MYhw",1,f,"Линейные методы и градиентный спуск",t,106,"01XLylXyEeWKXg4Y7_tPaw~5O43E",,"Oz2bJ",5,f
+"01XLylXyEeWKXg4Y7_tPaw","Qlbn8","j8kNTG5tEeqNSQo1CTCw7w",1,f,"Композиционные методы",t,106,"01XLylXyEeWKXg4Y7_tPaw~Qlbn8",,"RYaUM",5,f
+"01XLylXyEeWKXg4Y7_tPaw","WQ8xO","j1hw7G5tEeq5KxLZrHcuzw",1,f,"Работа с векторами и матрицами в NumPy",f,103,"01XLylXyEeWKXg4Y7_tPaw~WQ8xO",,"C6hMo",1,f
+"01XLylXyEeWKXg4Y7_tPaw","cEOds","j43ZN25tEeqqUQqyAN3FGw",1,f,"Python для анализа данных",f,103,"01XLylXyEeWKXg4Y7_tPaw~cEOds",,"C6hMo",0,f
+"01XLylXyEeWKXg4Y7_tPaw","PzNLD","j5S3Tm5tEeqvJA7ezzOWHw",1,f,"Логистическая регрессия",t,106,"01XLylXyEeWKXg4Y7_tPaw~PzNLD",,"LWzLO",4,f
+"01XLylXyEeWKXg4Y7_tPaw","2ltLY","j3uJOG5tEeqwcArEW1MYhw",1,f,"Проблема переобучения. Методология решения задач машинного обучения.",f,101,"01XLylXyEeWKXg4Y7_tPaw~2ltLY",,"vI0o3",3,f
+"01XLylXyEeWKXg4Y7_tPaw","HwICu","j8k0425tEeq6mQ5ATQdkUw",1,f,"Метрики качества классификации",t,106,"01XLylXyEeWKXg4Y7_tPaw~HwICu",,"pV0JI",3,f
+"01XLylXyEeWKXg4Y7_tPaw","uDU31","j3jKlm5tEeqKpQ5hoCwyOw",1,f,"Градиентный бустинг над решающими деревьями",t,111,"01XLylXyEeWKXg4Y7_tPaw~uDU31",,"RYaUM",4,f
+"01XLylXyEeWKXg4Y7_tPaw","QloeT","j_Adqm5tEeq__RIRDbH5Ew",1,f,"Нелинейные методы понижения размерности",f,101,"01XLylXyEeWKXg4Y7_tPaw~QloeT",,"lUwz8",2,f
+"01XLylXyEeWKXg4Y7_tPaw","SjSlD","j16zPW5tEeq6mQ5ATQdkUw",1,f,"Нейронные сети. Введение.",f,101,"01XLylXyEeWKXg4Y7_tPaw~SjSlD",,"i4xdu",0,f
+"01XLylXyEeWKXg4Y7_tPaw","P9Zun","j9jEvm5tEeqYWRJ1oMh_eQ",1,f,"Многоклассовая классификация",f,101,"01XLylXyEeWKXg4Y7_tPaw~P9Zun",,"pV0JI",2,f
+"01XLylXyEeWKXg4Y7_tPaw","kVz6T","j3aoE25tEeq7LxKLX1wHkQ",1,f,"Решающие деревья",f,101,"01XLylXyEeWKXg4Y7_tPaw~kVz6T",,"atzjh",0,f
+"01XLylXyEeWKXg4Y7_tPaw","ny6N1","j8k0i25tEeqKpQ5hoCwyOw",1,f,"Градиентный бустинг: модификации и эвристики",f,101,"01XLylXyEeWKXg4Y7_tPaw~ny6N1",,"RYaUM",2,f
+"01XLylXyEeWKXg4Y7_tPaw","FHJm2","j8k05G5tEeq6mQ5ATQdkUw",1,f,"Градиентный бустинг",f,101,"01XLylXyEeWKXg4Y7_tPaw~FHJm2",,"RYaUM",1,f
+"01XLylXyEeWKXg4Y7_tPaw","lexio",,,,"Пре-опрос",f,19,"01XLylXyEeWKXg4Y7_tPaw~lexio",,"rIBKM",4,f
