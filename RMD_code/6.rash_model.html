@@ -377,7 +377,7 @@ summary {
 
 <pre class="r"><code>wd &lt;- getwd()
 assignments &lt;- fread(&quot;unzip -cq ../data/assignments.zip&quot;)  %&gt;% group_by(course_name) %&gt;%
-  filter(course_item_type_desc != &quot;lecture&quot;) %&gt;% mutate(course_item_type_desc = factor(course_item_type_desc))</code></pre>
+  filter(course_item_type_desc != &quot;lecture&quot;) %&gt;% mutate(course_item_type_desc = factor(course_item_type_desc), vis_before_attempt_tw_b = ifelse(vis_before_attempt_tw==0, 0, 1))</code></pre>
 <div id="об-отчете" class="section level2">
 <h2>1. Об отчете</h2>
 <div id="исследовательские-вопросы" class="section level3">
@@ -396,22 +396,28 @@ assignments &lt;- fread(&quot;unzip -cq ../data/assignments.zip&quot;)  %&gt;% g
 </ol>
 </div>
 </div>
+<div id="описание-базы-данных" class="section level2">
+<h2>Описание базы данных</h2>
+<ul>
+<li><strong>assignments</strong> - база данных, с данными на уровне студентов</li>
+</ul>
+</div>
 <div id="описание-переменных" class="section level2">
 <h2>Описание переменных</h2>
+<p>Важные:</p>
 <ul>
 <li><strong>attempts</strong> - Попытки за задание. Сколько попыток этот студент сделал при решении этого задания;</li>
-<li><strong>vis_tw</strong> - Посещения форума. Сколько раз этот студент посещал форум во время прохождения этого задания. Важно: считается посещение форума за все время пока студент взаимодействует с задачей;</li>
+<li><strong>vis_tw</strong> - Посещения форума. Сколько раз этот студент посещал форум во время прохождения этого задания. Важно: считается посещение форума за все время пока студент взаимодействует с заданием;</li>
+<li><strong>vis_before_attempt_tw</strong> - Предварительное посещение форума - количество посещенных страниц форума с момента, когда студент начал решать задание и до момента когда студент совершил первую попытку;</li>
+<li><strong>vis_before_attempt_tw_b</strong> - Посещал студент форум или нет с момента, когда начал решать задание и до момента когда совершил первую попытку;</li>
 <li><strong>assessment_status</strong> - Статус выполнения задания: 1 - удалось решить, 0 - не удалось решить.</li>
-<li><strong>first_attempt</strong> - Статус выполнения задания с первой попытки: 1 - удалось решить с первой попытки, 0 - не удалось решить с первой попытки.</li>
-<li><strong>assignments</strong> - база данных, с данными на уровне студентов</li>
+<li><strong>first_attempt</strong> - Статус выполнения задания после первой попытки: 1 - удалось решить с первой попытки, 0 - не удалось решить с первой попытки.</li>
+</ul>
+<p>Менее важные:</p>
+<ul>
 <li><strong>assessment_id</strong> - токен задания;</li>
 <li><strong>hse_user_id</strong> - токен студента;</li>
-<li><strong>course_item_type_desc</strong> - тип задания;
-<ul>
-<li><strong><em>lecture</em></strong> - тест в видео (исключаю из анализа);</li>
-<li><strong><em>test</em></strong> - тест;</li>
-<li><strong><em>programming</em></strong> - задание по программированию;</li>
-</ul></li>
+<li><strong>course_item_type_desc</strong> - тип задания;</li>
 </ul>
 <div id="о-модели-раша" class="section level4">
 <h4>О модели Раша</h4>
@@ -444,8 +450,8 @@ assignments &lt;- fread(&quot;unzip -cq ../data/assignments.zip&quot;)  %&gt;% g
 </div>
 <div id="вероятность-выполнить-задание-с-первой-попытки" class="section level2">
 <h2>2. Вероятность выполнить задание с первой попытки</h2>
-<div id="дисперсия-статуса-выполнения-задания-по-студентам-и-заданиям" class="section level4">
-<h4>Дисперсия статуса выполнения задания по студентам и заданиям</h4>
+<div id="дисперсия-вероятности-выполнить-задание-с-первой-попытки-по-студентам-и-заданиям" class="section level4">
+<h4>Дисперсия вероятности выполнить задание с первой попытки по студентам и заданиям</h4>
 <pre class="r"><code>mr0 &lt;- glmer(data = assignments, factor(first_attempt) ~ 1 + (1|hse_user_id) + (1|course_item_name), family = &quot;binomial&quot;)
 summary(mr0)</code></pre>
 <pre><code>## Generalized linear mixed model fit by maximum likelihood (Laplace
@@ -472,7 +478,10 @@ summary(mr0)</code></pre>
 ## (Intercept)  1.80544    0.08359    21.6   &lt;2e-16 ***
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
-<pre class="r"><code>mr1 &lt;- glmer(data = assignments, factor(first_attempt) ~ 1 + vis_before_attempt_tw + (1|hse_user_id) + (1|course_item_name), family = &quot;binomial&quot;)
+</div>
+<div id="влияние-предварительного-посещения-форума-на-вероятность-решить-задание-с-первой-попытки" class="section level4">
+<h4>Влияние предварительного посещения форума на вероятность решить задание с первой попытки</h4>
+<pre class="r"><code>mr1 &lt;- glmer(data = assignments, factor(first_attempt) ~ 1 + vis_before_attempt_tw  + (1|hse_user_id) + (1|course_item_name), family = &quot;binomial&quot;)
 summary(mr1)</code></pre>
 <pre><code>## Generalized linear mixed model fit by maximum likelihood (Laplace
 ##   Approximation) [glmerMod]
@@ -512,6 +521,9 @@ summary(mr1)</code></pre>
 ## то вероятность, что студент выполнит задание будет равна 0.87</code></pre>
 <pre><code>## А если студент посетил форум 25 раз,
 ## то вероятность, что студент выполнит задание будет равна 0.99</code></pre>
+</div>
+<div id="визуализация" class="section level4">
+<h4>Визуализация</h4>
 <pre class="r"><code>assignments  %&gt;%   ggplot(aes(x = vis_before_attempt_tw, y = first_attempt)) +
   geom_point(aes(color = as.factor(first_attempt)), shape = 1)   +  
 # построит регрессионную линию, сигмоиду
@@ -536,6 +548,83 @@ summary(mr1)</code></pre>
 ## mr1    4 496525 496570 -248258   496517 166.34  1  &lt; 2.2e-16 ***
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+</div>
+<div id="есть-ли-эффект-научения" class="section level4">
+<h4>Есть ли эффект научения?</h4>
+<p>Вероятность решить задание с первой попытки может повышаться из-за эффекта научения. Студент может с каждой новой неделей лучше решать задачи. Поэтому возьмем один курс и посмотрим по каждой неделе: есть ли разница между вероятностью решить задание с первой попытки если заходил на форум или не заходил на форум (переменная <strong>vis_before_attempt_tw_b</strong>).</p>
+<pre class="r"><code>course_branch_items &lt;- fread(&quot;../data/vvedenie-mashinnoe-obuchenie/course_branch_items.csv&quot;) %&gt;% dplyr::select(course_lesson_id, course_item_id, course_branch_item_name, is_graded)
+course_branch_modules &lt;- fread(&quot;../data/vvedenie-mashinnoe-obuchenie/course_branch_modules.csv&quot;) %&gt;% dplyr::select(course_module_id, course_branch_module_order, course_branch_module_name)
+course_branch_lessons &lt;- fread(&quot;../data/vvedenie-mashinnoe-obuchenie/course_branch_lessons.csv&quot;) %&gt;% dplyr::select(-course_branch_id)
+
+vmo &lt;- left_join(course_branch_lessons, course_branch_items) %&gt;% left_join(., course_branch_modules) 
+
+total &lt;- assignments %&gt;%  filter(course_name == &quot;vvedenie-mashinnoe-obuchenie&quot;) %&gt;% dplyr::select(course_item_id,  course_item_name, hse_user_id, vis_before_attempt_tw_b, first_attempt) %&gt;%  left_join(., vmo, by=&quot;course_item_id&quot;) %&gt;% mutate(first_attempt = recode(first_attempt, `1` = &quot;pass&quot;, `0` = &quot;fail&quot;), vis_before_attempt_tw_b = recode(vis_before_attempt_tw_b, `1` = &quot;visites&quot;, `0` = &quot;not_visited&quot;))</code></pre>
+<p>Я выбрал курс &quot;Введение в машинное обучение и сравнил вероятность решить задание первой попытки у тех, кто предварительно заходил на форум или не заходил, <strong><em>отдельно для пяти недель</em></strong>.</p>
+<pre class="r"><code>i = 1
+while (i &lt; 6) {
+  a &lt;- total %&gt;% filter(course_branch_module_order == i) 
+  tab &lt;- table(a$first_attempt, a$vis_before_attempt_tw_b)
+  chisq &lt;- chisq.test(tab)
+  cat(sprintf(&quot;\nweek %d&quot;, i))
+  print(tab)
+  print(chisq)
+  i = i + 1 
+}</code></pre>
+<pre><code>## 
+## week 1      
+##        not_visited visites
+##   fail        1986       0
+##   pass        4522     147
+## 
+##  Pearson&#39;s Chi-squared test with Yates&#39; continuity correction
+## 
+## data:  tab
+## X-squared = 62.491, df = 1, p-value = 2.677e-15
+## 
+## 
+## week 2      
+##        not_visited visites
+##   fail        1840       0
+##   pass        6439     280
+## 
+##  Pearson&#39;s Chi-squared test with Yates&#39; continuity correction
+## 
+## data:  tab
+## X-squared = 77.96, df = 1, p-value &lt; 2.2e-16
+## 
+## 
+## week 3      
+##        not_visited visites
+##   fail        1765       0
+##   pass        4615     406
+## 
+##  Pearson&#39;s Chi-squared test with Yates&#39; continuity correction
+## 
+## data:  tab
+## X-squared = 150.37, df = 1, p-value &lt; 2.2e-16
+## 
+## 
+## week 4      
+##        not_visited visites
+##   fail        4077       0
+##   pass       13004     952
+## 
+##  Pearson&#39;s Chi-squared test with Yates&#39; continuity correction
+## 
+## data:  tab
+## X-squared = 292.25, df = 1, p-value &lt; 2.2e-16
+## 
+## 
+## week 5      
+##        not_visited visites
+##   fail        1493       0
+##   pass        5059     236
+## 
+##  Pearson&#39;s Chi-squared test with Yates&#39; continuity correction
+## 
+## data:  tab
+## X-squared = 67.619, df = 1, p-value &lt; 2.2e-16</code></pre>
+<p>Видно, что студенты, которые посещали форум почти всегда сдавали задание с первой попытки. Существует значимое различие между студентами, которые посещали форум до первой попытки, и теми, кто не посещал форум до первой попытки.</p>
 </div>
 </div>
 <div id="число-попыток-и-посещение-форума" class="section level2">
@@ -589,6 +678,7 @@ summary(mr3)</code></pre>
 <ol style="list-style-type: decimal">
 <li>По модифицированной модели Раша существует значимая отрицательная связь между количеством посещенных страниц форума до выполнения задания и вероятностью выполнить задание c первой попытки с учетом индивидуальных различий студентов и заданий.</li>
 <li>С увеличением на 1 пункт посещения форума отношение вероятность сдать тест на отлично увеличивается в 0.01 раз. То есть посещение форума, позволяет с большей вероятностью сдать тест.</li>
+<li>Видно, что студенты, которые посещали форум почти всегда сдавали задание с первой попытки. Существует значимое различие между студентами, которые посещали форум до первой попытки, и теми, кто не посещал форум до первой попытки.</li>
 <li>Число посещений форума во время выполнения задания коррелирует с количеством попыток положительно. С увеличением числа посещенных страниц на 1 пункт ожидаемое число попыток увеличиться в 1.01 раз. Возможно чем больше попыток человек совершает, тем чаще он будет заходить на форум.</li>
 </ol>
 </div>

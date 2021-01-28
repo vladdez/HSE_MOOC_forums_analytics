@@ -28,7 +28,7 @@ remove_outliers <- function(x, na.rm = TRUE, ...) {
 ```{r}
 wd <- getwd()
 assignments <- fread("unzip -cq ../data/assignments.zip")  %>% group_by(course_name) %>%
-  filter(course_item_type_desc != "lecture") %>% mutate(course_item_type_desc = factor(course_item_type_desc))
+  filter(course_item_type_desc != "lecture") %>% mutate(course_item_type_desc = factor(course_item_type_desc), vis_before_attempt_tw_b = ifelse(vis_before_attempt_tw==0, 0, 1))
 
 ```
 
@@ -46,19 +46,28 @@ assignments <- fread("unzip -cq ../data/assignments.zip")  %>% group_by(course_n
   2. Связь вероятности выполнения задания с посещением форума во время выполнения задания;
   3. Связь числа попыток с посещением форума во время выполнения задания.
 
+  
+## Описание базы данных
+
+  - **assignments** - база данных, с данными на уровне студентов
+  
 ## Описание переменных
  
+Важные: 
+
   - **attempts** - Попытки за задание. Сколько попыток этот студент сделал при решении этого задания;
-  - **vis_tw** - Посещения форума. Сколько раз этот студент посещал форум во время прохождения этого задания. Важно: считается посещение форума за все время пока студент взаимодействует с задачей;
+  - **vis_tw** - Посещения форума. Сколько раз этот студент посещал форум во время прохождения этого задания. Важно: считается посещение форума за все время пока студент взаимодействует с заданием;
+  - **vis_before_attempt_tw** - Предварительное посещение форума - количество посещенных страниц форума с момента, когда студент начал решать задание и до момента когда студент совершил первую попытку;
+  - **vis_before_attempt_tw_b** - Посещал студент форум или нет с момента, когда начал решать задание и до момента когда совершил первую попытку;
   - **assessment_status** - Статус выполнения задания: 1 - удалось решить, 0 - не удалось решить.
-  - **first_attempt** - Статус выполнения задания с первой попытки: 1 - удалось решить с первой попытки, 0 - не удалось решить с первой попытки.
-  - **assignments** - база данных, с данными на уровне студентов
+  - **first_attempt** - Статус выполнения задания после первой попытки: 1 - удалось решить с первой попытки, 0 - не удалось решить с первой попытки.
+
+Менее важные:
+
   - **assessment_id** - токен задания;
   - **hse_user_id** - токен студента;
   - **course_item_type_desc** - тип задания;
-    - ***lecture*** - тест в видео (исключаю из анализа);
-    - ***test*** - тест;
-    - ***programming*** - задание по программированию;
+
 
 #### О модели Раша
 
@@ -82,16 +91,17 @@ hist(assignments$vis_before_attempt_tw)
 
 ## 2. Вероятность выполнить задание с первой попытки
 
-#### Дисперсия статуса выполнения задания по студентам и заданиям
+#### Дисперсия вероятности выполнить задание с первой попытки по студентам и заданиям
 
 ```{r}
 mr0 <- glmer(data = assignments, factor(first_attempt) ~ 1 + (1|hse_user_id) + (1|course_item_name), family = "binomial")
 summary(mr0)
 ```
 
+####  Влияние предварительного посещения форума на вероятность решить задание с первой попытки
 
 ```{r}
-mr1 <- glmer(data = assignments, factor(first_attempt) ~ 1 + vis_before_attempt_tw + (1|hse_user_id) + (1|course_item_name), family = "binomial")
+mr1 <- glmer(data = assignments, factor(first_attempt) ~ 1 + vis_before_attempt_tw  + (1|hse_user_id) + (1|course_item_name), family = "binomial")
 summary(mr1)
 mrr1 <- summary(mr1)
 ```
@@ -102,6 +112,9 @@ cat(sprintf("С увеличением на 1 пункт посещения фо
 cat(sprintf("Например, если студент посетил форум 1 раз до совершения попытки,\nто вероятность, что студент выполнит задание будет равна %.2f\n\n", invlogit(mrr1$coefficients[1] + mrr1$coefficients[2])))
 cat(sprintf("А если студент посетил форум 25 раз,\nто вероятность, что студент выполнит задание будет равна %.2f\n\n", invlogit(mrr1$coefficients[1] + mrr1$coefficients[2]* 25)))
 ```
+
+
+####  Визуализация
 
 ```{r, warning=FALSE}
 assignments  %>%   ggplot(aes(x = vis_before_attempt_tw, y = first_attempt)) +
@@ -123,6 +136,45 @@ assignments  %>%   ggplot(aes(x = vis_before_attempt_tw, y = first_attempt)) +
 anova(mr0, mr1)
 ```
 
+
+#### Есть ли эффект научения?
+
+Вероятность решить задание с первой попытки может повышаться из-за эффекта научения. Студент может с каждой новой неделей лучше решать задачи. Поэтому возьмем один курс и посмотрим по каждой неделе: есть ли разница между вероятностью решить задание с первой попытки если заходил на форум или не заходил на форум (переменная **vis_before_attempt_tw_b**).
+
+
+```{r}
+
+course_branch_items <- fread("../data/vvedenie-mashinnoe-obuchenie/course_branch_items.csv") %>% dplyr::select(course_lesson_id, course_item_id, course_branch_item_name, is_graded)
+course_branch_modules <- fread("../data/vvedenie-mashinnoe-obuchenie/course_branch_modules.csv") %>% dplyr::select(course_module_id, course_branch_module_order, course_branch_module_name)
+course_branch_lessons <- fread("../data/vvedenie-mashinnoe-obuchenie/course_branch_lessons.csv") %>% dplyr::select(-course_branch_id)
+
+vmo <- left_join(course_branch_lessons, course_branch_items) %>% left_join(., course_branch_modules) 
+
+total <- assignments %>%  filter(course_name == "vvedenie-mashinnoe-obuchenie") %>% dplyr::select(course_item_id,  course_item_name, hse_user_id, vis_before_attempt_tw_b, first_attempt) %>%  left_join(., vmo, by="course_item_id") %>% mutate(first_attempt = recode(first_attempt, `1` = "pass", `0` = "fail"), vis_before_attempt_tw_b = recode(vis_before_attempt_tw_b, `1` = "visites", `0` = "not_visited"))
+
+
+```
+
+Я выбрал курс "Введение в машинное обучение и сравнил вероятность решить задание первой попытки у тех, кто предварительно заходил на форум или не заходил, ***отдельно для пяти недель***. 
+
+
+```{r}
+i = 1
+while (i < 6) {
+  a <- total %>% filter(course_branch_module_order == i) 
+  tab <- table(a$first_attempt, a$vis_before_attempt_tw_b)
+  chisq <- chisq.test(tab)
+  cat(sprintf("\nweek %d", i))
+  print(tab)
+  print(chisq)
+  i = i + 1 
+}
+
+```
+
+
+Видно, что студенты, которые посещали форум почти всегда сдавали задание с первой попытки. Существует значимое различие между студентами, которые посещали форум до первой попытки, и теми, кто не посещал форум до первой попытки. 
+
 ## 3. Число попыток и посещение форума
 
 Считаем только по выполненным заданиям.
@@ -140,7 +192,7 @@ mrr3 <- summary(mr3)
 
 ```{r, echo=FALSE}
 cat(sprintf("Ожидаемое число попыток, чтобы выполнить задание, без посещения форума равно %.2f.\n", exp(mrr3$coefficients[1])))
-cat(sprintf("С увеличением числа посещенных страниц на 1 пункт ожидаемое число попыток увеличиться в %.2f раз, т.е. на %d %%.\n", exp(mrr3$coefficients[2]), round( exp(mrr3$coefficients[2] - 1))*100, digits = 0))
+cat(sprintf("С увеличением числа посещенных страниц на 1 пункт ожидаемое число попыток увеличиться в %.2f раз, т.е. на %d %%.\n", exp(mrr3$coefficients[2]), round(exp(mrr3$coefficients[2] - 1)) * 100, digits = 0))
 cat(sprintf("Например, если студент посетил форум 25 раз, то ожидаемое число попыток, которое он сделает равно %.5f.\n\n", exp(mrr3$coefficients[1] + mrr3$coefficients[2]* 25) ))
 ```
 
@@ -149,7 +201,9 @@ cat(sprintf("Например, если студент посетил форум
 
   1. По модифицированной модели Раша существует значимая отрицательная связь между количеством посещенных страниц форума до выполнения задания и вероятностью выполнить задание c первой попытки с учетом индивидуальных различий студентов и заданий.
   2.  С увеличением на 1 пункт посещения форума отношение вероятность сдать тест на отлично увеличивается в 0.01 раз. То есть посещение форума, позволяет с большей вероятностью сдать тест.
-  3. Число посещений форума во время выполнения задания коррелирует с количеством попыток положительно. С увеличением числа посещенных страниц на 1 пункт ожидаемое число попыток увеличиться в 1.01 раз. Возможно чем больше попыток человек совершает, тем чаще он будет заходить на форум.
+  3. Видно, что студенты, которые посещали форум почти всегда сдавали задание с первой попытки. Существует значимое различие между студентами, которые посещали форум до первой попытки, и теми, кто не посещал форум до первой попытки. 
+  4. Число посещений форума во время выполнения задания коррелирует с количеством попыток положительно. С увеличением числа посещенных страниц на 1 пункт ожидаемое число попыток увеличиться в 1.01 раз. Возможно чем больше попыток человек совершает, тем чаще он будет заходить на форум.
+  
 
 
 
