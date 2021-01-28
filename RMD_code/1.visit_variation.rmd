@@ -1,5 +1,5 @@
 ---
-title: "Дисперсия посещений форума"
+title: "Что влияет на посещение форума"
 output: html_document
 ---
 
@@ -13,6 +13,8 @@ library(broom)
 library(ggplot2)
 library(tidyr)
 library(arm)
+library(ggpubr)
+library(rstatix)
 
 remove_outliers <- function(x, na.rm = TRUE, ...) {
   qnt <- quantile(x, probs=c(.25, .75), na.rm = na.rm, ...)
@@ -34,6 +36,19 @@ students$spec_b <-factor(students$spec_b)
 
 short <- students %>% distinct(course_slug, spec_b, field, is_prog)
 table(short$is_prog)
+
+courses <- fread("../data/courses.csv")%>%
+  mutate(vis_learner_p_norm = round(student_n / vis_learner_p, digits = 2), student_vis_mean = remove_outliers(student_vis_mean), passing_rate = passing_rate * 100,
+         q_staff_n = round(q_staff / student_n, digits = 2) *100, ans_staff_n = round(ans_staff / student_n, digits = 2)*100, q_learner_n = round(q_learner / student_n, digits = 2) *100,
+         ans_learner_n = round(ans_learner / student_n, digits = 2) *100,
+         q_staff_b = case_when(
+    q_staff_n >= 1 ~ 1,
+    q_staff_n < 1  ~ 0
+), ans_staff_b = case_when(
+    ans_staff_n >= 1 ~ 1,
+    ans_staff_n < 1  ~ 0
+))
+
 ```
 
 
@@ -66,13 +81,30 @@ table(short$is_prog)
 
 ### Переменные
 
-- **Посещение форума.**
+- **Метрики форума**
+  - ***student_vis_mean*** - среднее посещение форума студентами на курсе;
   - ***vis_b*** - посещал форум или нет;
   - ***vis_p*** - количество посещенных страниц форума;
+  
 - **Тип курса.**     
   - ***spec_b*** - индивидуальный курс или курс из специализации;
   - ***is_prog*** - есть задания по программированию в курсе или нет;
 
+- **Тип задания** - бинарные переменные; сообщают есть ли такой тип задания на курсе;
+  - ***is_prog*** - есть ли задание по программированию;
+  - ***is_math*** - есть ли задание по математике;
+  - ***is_peer*** - есть ли пир-ревью;
+ 
+### Как создавались бинарные переменные типов заданий
+ - К сожалению, не всегда удается автоматически определить какие на курсе задания, а потому приходится использовать разнообразные признаки для их кодирования.
+  - ***is_prog***
+    - есть ли в таблице course_items.csv задания со словом "programming";
+    - есть ли в таблице assessment_questions.csv вопросы с типом 14 (codeExpression)
+  - ***is_math***
+    - есть ли задания в таблице assessment_math_expression_questions.csv;
+    - есть ли в таблице peer_assignment_submission_schema_parts.csv слова "math","calculate", "Рассчитайте"
+  - ***is_peer***
+    - есть ли в таблице 'course_items.csv' задание с типом 104 (peer-review);
 
 ## 2. Анализ дисперсий
 
@@ -142,9 +174,9 @@ c <- c(round(exp(coef - sd), digits = 0), round(exp(coef + sd), digits = 0))
 ```
 
 ```{r , echo=FALSE}
-cat(sprintf("\nМетод 1. Медиана и стандартное отклонение для посещений страниц: %d и %d\n", round(median(students$vis_p, na.rm = TRUE), digit = 0), round(sd(students$vis_p, na.rm = TRUE), digit = 0)))
+cat(sprintf("\nМедианное посещение страниц форума равно %d со стандартным отклонением %d\n", round(median(students$vis_p, na.rm = TRUE), digit = 0), round(sd(students$vis_p, na.rm = TRUE), digit = 0)))
 
-cat(sprintf("\nМетод 2. Среднее количество страниц, которые посещают студенты на форуме среднего курса: %d\n", round(exp(coef), digit = 0)))
+cat(sprintf("\nCреднее количество страниц, которые посещают студенты на форуме среднего курса: %d\n", round(exp(coef), digit = 0)))
 cat(sprintf("Это количество колеблется между: %d и %d страницами\n", c[1], c[2]))
 cat(sprintf("Необъясненная дисперсия (variance): %f\n", variance2))
 ```
@@ -174,10 +206,13 @@ coef = m0$coef
 ```{r , echo=FALSE}
 
 c <- c(round(invlogit(coef - sd), digits = 2), round(invlogit(coef + sd), digits = 2))
-cat(sprintf("\nВероятность, посещения форума на индивидуальном курсе: %.f%%\n", round(invlogit(coef[1]), digit = 2)*100))
-cat(sprintf("Вероятность, посещения форума на курсе специализации: %.f%%\n", round(invlogit(coef[1] + coef[2]), digits = 2)*100))
-cat(sprintf("AIC модели без предиктора - %.2f и AIC с предиктором - %.2f\n", a1, a3))
-cat(sprintf("Необъясненная дисперсия модели без предиктора - %.3f и необъясненная дисперсия с предиктором - %.3f\n", variance1, variance3))
+cat(sprintf("Незначимо!\n"))
+#cat(sprintf("\nВероятность, посещения форума на индивидуальном курсе: %.f%%\n", round(invlogit(coef[1]), digit = 3)*100))
+#cat(sprintf("Вероятность, посещения форума на курсе специализации: %.f%%\n", round(invlogit(coef[1] + coef[2]), digits = 3)*100))
+#cat(sprintf("AIC модели без предиктора - %.2f и AIC с предиктором - %.2f\n", a1, a3))
+#cat(sprintf("Необъясненная дисперсия модели без предиктора - %.3f и необъясненная дисперсия с предиктором - %.3f\n", variance1, variance3))
+
+
 ```
 
 ### 2.4 Влияние специализации на количество страниц посещенных студентом
@@ -200,18 +235,40 @@ coef = m0$coef
 ```
 
 ```{r , echo=FALSE}
-
-cat(sprintf("\nСреднее количество страниц на форуме, которые студенты посещают на индивидуальном курсе: %d\n", round(exp(coef[1]), digit = 0)))
-cat(sprintf("Среднее количество страниц на форуме, которые студенты посещают на курсе из специализации: %d \n", round(exp(coef[1] +coef[2]), digit = 0)))
-cat(sprintf("AIC модели без предиктора - %.2f и AIC с предиктором - %.2f\n", a2, a4))
-cat(sprintf("Необъясненная дисперсия модели без предиктора - %.2f и необъясненная дисперсия с предиктором - %.2f\n", variance2, variance4))
+cat(sprintf("Незначимо!\n"))
+#cat(sprintf("\nСреднее количество страниц на форуме, которые студенты посещают на индивидуальном курсе: %.2f\n", round(exp(coef[1]), digit = 2)))
+#cat(sprintf("Среднее количество страниц на форуме, которые студенты посещают на курсе из специализации: %.2f \n", round(exp(coef[1] +coef[2]), digit = 2)))
+#cat(sprintf("Ожидаемое значение посещенных страниц форума для курса из специализации выше в %.2f раз, чем для индивидуального курса.\n", round(exp(coef[2]), digit = 3)))
+#cat(sprintf("AIC модели без предиктора - %.2f и AIC с предиктором - %.2f\n", a2, a4))
+#cat(sprintf("Необъясненная дисперсия модели без предиктора - %.2f и необъясненная дисперсия с предиктором - %.2f\n", variance2, variance4))
 ```
 
-### 2.5 Влияние программирования на количество страниц посещенных студентом
+### 2.5 Влияние программирования на посещение форума студентом
+
+```{r}
+m0 <- glmer(vis_b ~ is_prog + (1|course_id), family = "binomial",
+            students)
+summary(m0)
+```
+```{r, include=FALSE}
+a3 <- AIC(m0)
+sd <- as.numeric(data.frame(VarCorr(m0))[5])
+m0 <- display(m0)
+variance3 <- sd ^2
+coef = m0$coef
+```
+
+
+```{r , echo=FALSE}
+
+cat(sprintf("Незначимо!\n"))
+
+```
+
+### 2.6 Влияние программирования на количество страниц посещенных студентом
 
 
 ```{r}
-
 m0 <- glmer.nb(vis_p ~ is_prog + (1|course_id),
             students)
 summary(m0)
@@ -227,15 +284,116 @@ coef = m0$coef
 
 ```{r , echo=FALSE}
 
-cat(sprintf("\nСреднее количество страниц на форуме, которые студенты посещают на индивидуальном курсе: %d\n", round(exp(coef[1]), digit = 0)))
-cat(sprintf("Среднее количество страниц на форуме, которые студенты посещают на курсе с программированием: %d \n", round(exp(coef[1] +coef[2]), digit = 0)))
+cat(sprintf("\nОжидаемое количество страниц на форуме, которые студенты посещают на индивидуальном курсе: %.2f.\n", round(exp(coef[1]), digit = 2)))
+cat(sprintf("Ожидаемое количество страниц на форуме, которые студенты посещают на курсе с программированием: %.2f.\n", round(exp(coef[1] +coef[2]), digit = 2)))
+cat(sprintf("Ожидаемое количество страниц на форуме на курсах с программированию выше количества страниц на курсах без программирования в %.2f раз.\n", round(exp(coef[2]), digit = 2)))
 cat(sprintf("AIC модели без предиктора - %.2f и AIC с предиктором - %.2f\n", a2, a5))
 cat(sprintf("Необъясненная дисперсия модели без предиктора - %.2f и необъясненная дисперсия с предиктором - %.2f\n", variance2, variance5))
+```
+#### Визуализация
+
+```{r}
+students %>%
+  ggplot(aes(x = factor(is_prog), y = vis_p)) + geom_point() + geom_boxplot() + ggtitle("Влияние типа курса на количество посещенных страниц") + labs(x="Тип курса", y = "Количество посещенных страниц форума") +  theme(plot.title = element_text(hjust = 0.5))
+```
+
+## 3. Тип курса и среднее посещение
+### 3.1 Описательная статистика
+
+- Чтобы выяснить взаимоотношением между средним посещением и типом курса мы будем использовать **Mann-Whitney U test** потому что:
+  - Переменная ***student_vis_mean***:
+    - непрерывная;
+    - скошена влево, а значит нарушена предпосылка нормальности;
+    - тест Шапиро также показывает, что распределение этой переменной значимо отличается от нормального;
+  - Переменные  ***is_prog***, ***is_math***, ***is_peer***
+    - бинарные;
+    - значения этих переменных независимы;
+    - их распределения должны походить друг на друга.
+- Mann-Whitney U test - это аналог t-test для ненормально распределенной зависимой переменной.
+
+
+```{r, warning=FALSE, message=FALSE}
+gghistogram(courses, x = "student_vis_mean", y = "..density..",
+            fill = "steelblue",bins = 30, add_density = TRUE)
+shapiro.test(courses$student_vis_mean)
+
+courses %>%
+  ggplot(aes(x = student_vis_mean)) + geom_histogram() + facet_wrap(~is_peer_b, labeller = labeller(yes = "1", no = "0")) + labs(x = "Посещение форума в среднем по курсу", y = "Количество курсов с таким посещением")
+
+```
+
+
+### 3.2 Mann-Whitney U tests в виде расчетов и с силой эффекта
+#### Во всех трех случаях есть значимая разница в среднем посещении форума между курсами с разными типами заданий
+
+```{r, include=FALSE}
+
+wt1 <- wilcox.test(student_vis_mean ~ is_prog_b, courses)
+w1 <- courses %>% wilcox_effsize(student_vis_mean ~ is_prog_b)
+wt2 <- wilcox.test(student_vis_mean ~ is_math_b, courses)
+w2 <- courses %>% wilcox_effsize(student_vis_mean ~ is_math_b)
+wt3 <- wilcox.test(student_vis_mean ~ is_peer_b, courses)
+w3 <- courses %>% wilcox_effsize(student_vis_mean ~ is_peer_b)
+```
+
+```{r, echo=FALSE}
+wt1
+w1$effsize
+wt2
+w2$effsize
+wt3
+w3$effsize
+```
+
+### 3.3 Mann-Whitney U tests в виде графиков
+#### На графиках указаны статистики теста и значимость различий между курсами с разными типами заданий
+
+```{r}
+
+stat.test <- courses %>%
+  wilcox_test(student_vis_mean ~ is_prog_b) %>%
+  add_significance()
+bxp <- ggboxplot(
+  courses, x = "is_prog_b", y = "student_vis_mean",
+  ylab = "Посещение форума в среднем по курсу", xlab = "Курс с программированием", add = "jitter") +
+scale_x_discrete(labels=c("Нет","Да"))
+stat.test <- stat.test %>% add_xy_position(x = "group")
+bxp +
+  stat_pvalue_manual(stat.test, tip.length = 0) +
+  labs(subtitle = get_test_label(stat.test, detailed = TRUE))
+ 
+
+stat.test <- courses %>%
+  wilcox_test(student_vis_mean ~ is_math_b) %>%
+  add_significance()
+bxp <- ggboxplot(
+  courses, x = "is_math_b", y = "student_vis_mean",
+  ylab = "Посещение форума в среднем по курсу", xlab = "Курс с математическими рассчетами", add = "jitter") +
+scale_x_discrete(labels=c("Нет","Да"))
+stat.test <- stat.test %>% add_xy_position(x = "group")
+bxp +
+  stat_pvalue_manual(stat.test, tip.length = 0) +
+  labs(subtitle = get_test_label(stat.test, detailed = TRUE))
+ 
+
+stat.test <- courses %>%
+  wilcox_test(student_vis_mean ~ is_peer_b) %>%
+  add_significance()
+bxp <- ggboxplot(
+  courses, x = "is_peer_b", y = "student_vis_mean",
+  ylab = "Посещение форума в среднем по курсу", xlab = "Курс с взаимный оцениванием", add = "jitter") +
+scale_x_discrete(labels=c("Нет","Да"))
+stat.test <- stat.test %>% add_xy_position(x = "group")
+bxp +
+  stat_pvalue_manual(stat.test, tip.length = 0) +
+  labs(subtitle = get_test_label(stat.test, detailed = TRUE))
+ 
 ```
 
 ## Выводы
 
-  1. 60-70 % студентов посещают курс
-  2. В среднем студенты посещают 5-8 страниц форума
-  3. На курсах специализаций студенты посещают значимо больше страниц — 7-12 страниц.
-  4. На курсах с программированием студенты посещают значимо больше страниц —  21.
+  1. 60-70 % студентов посещают курс.
+  2. В среднем студенты посещают 5-8 страниц форума.
+  3. Разница между посещением форума на курсах из специализаций и индивидуальных курсов незначительная. Так же для количества посещенных страниц.
+  4. На курсах с программированием студенты посещают в 9 раз больше страниц форума. На курсах без программирования - 2 страницы в среднем, с программированием  —  21 страниц в среднем. Различия по количеству студентов посетивших форум незначительны. 
+  5. Согласно критерию Манна-Уитни на курсах, где есть задания с программированием значимо больше средних посещений чем на курсах  без них. Такая же ситуация с на курсах с заданиями с математикой и взаимной оценкой. Размеры эффектов: от 0.3 до 0.38.

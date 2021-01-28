@@ -1,0 +1,365 @@
+---
+title: "Как различные задания влияют на число попыток и посещение форума"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+library(dplyr)
+library(data.table)
+library(lme4)
+library(ggplot2)
+library(parameters)
+
+remove_outliers <- function(x, na.rm = TRUE, ...) {
+  qnt <- quantile(x, probs=c(.25, .75), na.rm = na.rm, ...)
+  H <- 1.5 * IQR(x, na.rm = na.rm)
+  y <- x
+  y[x < (qnt[1] - H)] <- NA
+  y[x > (qnt[2] + H)] <- NA
+  y
+}
+
+```
+
+## 1. Об отчете
+
+### Исследовательские вопросы
+
+  1. Как разные типы заданий влияют на количество попыток и посещение форума при выполнении задания?
+  2. Как плата за курс, вариант оплаты и тип курса влияют на посещение форума?
+
+### Содержание отчета
+ 
+  1. Описание переменных
+  2. Влияние типа задания на ключевые переменные на базе данных парных курсов.
+  3. Влияние типа задания на ключевые переменные на полной базе данных.
+
+### Описание баз данных и ее переменных
+
+  1. База состоит из 49 курсов. У 9 курсов есть одновременно тесты и задания по программированию, я называю их ***парные курсы***.
+  2. Полная база - все 49 курсов. База парных курсов - 9 курсов
+  3. Рассматриваются только задания, с которыми студенты справились.
+  4. Рассматриваются только студенты, которые закончили курс.
+  5. Рассматриваются два типа заданий: тест и задание по программированию.
+
+```{r}
+wd <- getwd()
+assignments <- fread("unzip -cq ../data/assignments.zip")  %>% group_by(course_name) %>%
+  mutate(course_item_type_desc = dplyr::recode(course_item_type_desc, `programming assignment` = "programming", `exam` = "test")) %>%
+  filter(course_item_type_desc != "lecture") %>% mutate(course_item_type_desc = factor(course_item_type_desc)) %>%
+  filter(assessment_status == 1 | assessment_status == 0)
+
+```
+
+
+#### Количество курсов в анализе
+
+```{r}
+length(unique(assignments$course_name))
+```
+
+####  Количество парных курсов
+
+```{r}
+tw_paired<- assignments %>% filter(assessment_status == 1) %>%
+  mutate(n = n_distinct(course_item_type_desc)) %>% filter(n == 2)
+length(unique(tw_paired$course_name))
+
+```
+
+### Переменные
+  - **attempts** - Попытки за задание. Сколько попыток этот студент сделал при решении этого задания;
+  - **vis_wt** - Посещения форума. Сколько раз этот студент посещал форум во время прохождения этого задания;
+  - **rate** - Доля посещений форума. Какая часть из студенто-заданий на данном курсе побудила студентов зайти на форум.
+    - студенто-задание - взаимодействие одного студента с одним заданием.  
+    - rate = число студенто-заданий, во время решения которых студент зашел на форум / число студенто-заданий на курсе.
+    - например: 1 - все задания побудили всех студентов зайти на форум, 0 - ни одно задание не побудило ни одного студента зайти на форум.
+  - **assessment_status** - Статус выполнения задания: 1 - удалось решить, 0 - не удалось решить.
+  - **assignments** - база данных, с данными на уровне студентов
+  - **assessment_id** - токен задания;
+  - **hse_user_id** - токен студента;
+  - **course_item_type_desc** - тип задания;
+    - ***lecture*** - тест в видео (исключаю из анализа);
+    - ***test*** - тест;
+    - ***programming*** - задание по программированию;
+
+
+
+ 
+ 
+##  1. Описательная статистика по спаренным курсам
+
+### 1.1. Попытки при выполнении заданий
+
+<span style="color:green">**DIFFER!**</span>
+
+#### Анализ распределения
+
+```{r}
+tw_paired_0 <- assignments %>%
+  mutate(n = n_distinct(course_item_type_desc)) %>% filter(n == 2)
+```
+
+Распределение попыток на парных курсах:
+
+    - все что выше трех попыток - выбросы;
+    - 45% всех заданий решаются с первой попытки, 20% - с двух попыток, 12% - с трех, т.е. 77% заданий решаются с 1-3 попыток;
+    - 97% всех заданий решаются с 1-11 попыток, поэтому все значения выше 11 попыток считаем как 11 попыток. Это делается для того, чтобы исключить влияние сверхбольших значений, которые возникли, скорее всего, из-за технических ошибок.
+
+```{r}
+summary(tw_paired_0$attempts)
+sum(table(tw_paired_0$attempts)[1:11]) / nrow(tw_paired_0)
+
+tw_paired_1 <- tw_paired_0 %>% mutate(attempts = case_when(
+    attempts < 11 ~ attempts,
+    attempts >= 11 ~ as.integer(11)
+))
+```
+ 
+Для наглядности посчитаем среднее медианных значений попыток по курсу у заданий по программированию и у тестов:
+
+```{r}
+
+tw_paired <- tw_paired_1  %>% group_by(course_name, course_item_type_desc) %>% summarise(attempts_median = median(attempts))
+
+tw_paired %>% group_by(course_item_type_desc) %>% summarise(attempts_vis_wt_mean = mean(attempts_median))
+
+```
+
+Для наглядности визуализируем медианные значения попыток по курсу у заданий по программированию и у тестов:
+    
+```{r}
+tw_paired  %>% ggplot(aes(x = course_item_type_desc, y = attempts_median)) + geom_boxplot() + geom_point()
+ a <-tw_paired_1 %>%  filter(course_item_type_desc != "programming")
+ table(a$attempts)
+ 
+```
+
+Также взглянем на распределение попыток у заданий по программированию и у тестов:
+
+```{r}
+a <-tw_paired_1 %>%  filter(course_item_type_desc == "programming")
+ table(a$attempts)
+```
+
+#### Тест Манна-Уитни
+
+```{r}
+wilcox.test(attempts_median ~ course_item_type_desc, tw_paired, exact = FALSE)
+```
+
+### 1.2. Посещения форума
+
+<span style="color:green">**Differ!**</span>
+
+Распределение посещений на парных курсах:
+
+- При решении 97% всех заданий студенты посещают форум 1-25 раз, поэтому все значения выше 25 попыток считаем как 11 посещений. Это делается для того, чтобы исключить влияние сверхбольших значений, которые возникли, скорее всего, из-за технических ошибок.
+
+```{r}
+tw_paired_0 <- assignments %>%
+  mutate(n = n_distinct(course_item_type_desc)) %>% filter(n == 2)
+sum(table(tw_paired_0$attempts)[1:11]) / nrow(tw_paired_0)
+tw_paired_1 <- tw_paired_0  %>% mutate(vis_wt = case_when(
+    vis_wt < 25 ~ vis_wt,
+    vis_wt >= 25 ~ as.integer(25)
+))
+```
+
+Для наглядности рассчитаем средние значения посещений среди курсов для заданий по программированию и для тестов:
+
+```{r}
+tw_paired <- tw_paired_1  %>%  group_by(course_name, course_item_type_desc) %>% summarise(vis_wt_mean = round(mean(vis_wt), digits = 1))
+tw_paired %>% group_by(course_item_type_desc) %>% summarise(vis_wt_mean = round(mean(vis_wt_mean), digits = 1))
+
+```
+
+Для наглядности визуализируем число посещений форума во время выполнения тестов и заданий по программированию:
+
+```{r}
+tw_paired  %>% ggplot(aes(x = course_item_type_desc, y = vis_wt_mean)) + geom_boxplot() + geom_point()
+
+```
+
+#### Тест Манна-Уитни
+
+```{r}
+wilcox.test(vis_wt_mean ~ course_item_type_desc, tw_paired, exact = FALSE)
+```
+
+### 1.3. Доля посещения
+
+<span style="color:green">**Differ!**</span>
+
+Как рассчитывается эта переменная:
+
+  1. Создаем переменную vis_wt_b - это бинарная переменная,которая указывает зашел студент на форум во время выполнения этого задания или нет;
+  2. Группируем данные по курсам и по заданиям. Группировка по курсам потому что доля посещений может отличаться от курса к курсу;
+  3. Суммируем внутри подгрупп число заходов на форум. Делим на число студенто-заданий;
+  4. Получаем значения по каждому курсу и типу заданий;
+  5. Тест Манна-Уитни проводим по этим значения.
+
+Для наглядности рассчитаем среднюю долю посещений для заданий по программированию и для тестов:
+ 
+```{r}
+tw_paired <- assignments %>%
+  mutate(n = n_distinct(course_item_type_desc)) %>% filter(n == 2) %>% mutate(vis_wt_b = case_when(
+    vis_wt != 0 ~ 1,
+    vis_wt == 0 ~ 0
+)) %>%  group_by(course_name,  course_item_type_desc) %>%
+    summarise(students_per_type = n(), students_per_type_visited = sum(vis_wt_b), rate = round(students_per_type_visited / students_per_type, digit = 2))
+
+
+tw_paired %>% group_by(course_item_type_desc) %>% summarise(median_rate = median(rate))
+
+```
+
+Для наглядности визуализируем долю посещений форума для каждого курса во время выполнения тестов и заданий по программированию:
+
+```{r}
+tw_paired  %>% ggplot(aes(x = course_item_type_desc, y = rate)) + geom_boxplot() + geom_point()
+
+```
+
+#### Тест Манна-Уитни
+
+```{r}
+wilcox.test(rate ~ course_item_type_desc, tw_paired)
+```
+
+##  2. Описательная статистика по всем курсам
+
+<span style="color:green">**DIFFER!**</span>
+
+### 2.1. Попытки
+
+####  Анализ распределения
+
+Для наглядности рассчитаем медиану медианных значений попыток по курсу для заданий по программированию и для тестов:
+ 
+  - как и в случае выше, округлим все значения больше 17
+
+```{r}
+tw_paired_0 <- assignments
+
+tw_paired_1 <- tw_paired_0 %>% mutate(attempts = case_when(
+    attempts < 17 ~ attempts,
+    attempts >= 17 ~ as.integer(17)
+))
+tw_paired <- tw_paired_0  %>% group_by(course_name, course_item_type_desc) %>% summarise(attempts_median = median(attempts))
+
+tw_paired %>% group_by(course_item_type_desc) %>% summarise(attempts_vis_wt_median = median(attempts_median))
+
+```
+Распределение попыток на всех курсах:
+
+```{r}
+summary(tw_paired_0$attempts)
+table(tw_paired_1$attempts)
+```
+
+#### Тест Манна-Уитни
+
+```{r}
+wilcox.test(attempts_median ~ course_item_type_desc, tw_paired)
+```
+
+### 2.2. Посещения
+
+<span style="color:green">**Differ!**</span>
+
+Для наглядности визуализируем среднее число посещений форума во время выполнения тестов и заданий по программированию:
+
+  - как и в прошлый раз округлим до 25
+ 
+```{r}
+tw_paired_0 <- assignments %>%
+  mutate(n = n_distinct(course_item_type_desc))
+tw_paired_1 <- tw_paired_0  %>% filter(vis_wt < 25)
+
+tw_paired <- tw_paired_1  %>%  group_by(course_name, course_item_type_desc) %>% summarise(vis_wt_mean = round(mean(vis_wt), digits = 1))
+tw_paired %>% group_by(course_item_type_desc) %>% summarise(vis_wt_mean = round(mean(vis_wt_mean), digits = 1))
+
+```
+
+Визуализируем число посещений форума во время выполнения тестов и заданий по программированию:
+
+```{r}
+tw_paired  %>% ggplot(aes(x = course_item_type_desc, y = vis_wt_mean)) + geom_boxplot() + geom_point()
+
+```
+
+#### Тест Манна-Уитни
+
+
+```{r}
+wilcox.test(vis_wt_mean ~ course_item_type_desc, tw_paired, exact = FALSE)
+```
+
+### 2.3. Доля посещения
+
+<span style="color:green">**Differ!**</span>
+
+Посчитаем среднюю долю посещений для заданий по программированию и для тестов:
+
+```{r}
+tw_paired <- assignments %>%
+  mutate(n = n_distinct(course_item_type_desc)) %>% mutate(vis_wt_b = case_when(
+    vis_wt != 0 ~ 1,
+    vis_wt == 0 ~ 0
+)) %>%  group_by(course_name,  course_item_type_desc) %>%
+  summarise(students_per_type = n(), students_per_type_visited = sum(vis_wt_b), rate = round(students_per_type_visited / students_per_type, digit = 2))
+
+
+tw_paired %>% group_by(course_item_type_desc) %>% summarise(median_rate = median(rate), mean_rate = mean(rate))
+
+```
+
+
+Визуализируем долю посещений форума для каждого курса во время выполнения тестов и заданий по программированию:
+
+```{r}
+tw_paired  %>% ggplot(aes(x = course_item_type_desc, y = rate)) + geom_boxplot() + geom_point()
+
+```
+
+#### Тест Манна-Уитни
+
+```{r}
+wilcox.test(rate ~ course_item_type_desc, tw_paired)
+```
+
+## Выводы
+
+Тактические выводы:
+
+  1. Доля посещений форума при решении задач значимо отличается для тестов и заданий по программированию.  Доля заданий во время которых заходят на форум выше в 5 раз для заданий с программированием среди спаренных курсов, в 7 раз среди всех курсов;
+  2. Количество попыток на 1.2 раза значимо выше при решении тестов, чем задач по программированию;
+  3. Количество просмотренных страниц при решении заданий значимо отличается: в 5 раз больше посещений у курсов с программированием в обоих базах данных;
+  4. Возможные конфаундеры:
+      - несбалансированные значения - большинство студентов выполнили задание с ноль посещений и одной попыткой;
+      - присутствуют выбросы с огромными значениями. Возможно студент отложил задание и не трогал его совсем и посещал форум по другим причинам. А вернулся к нему значительно позже и его посещение форума не было связано с данным заданием.
+  5. Существует значимая положительная связь между посещением форума и оплатой курса. Существует также интерактивный эффект оплаты курса и типа курса: на курсах по программированию чаще посещают форум и чаще оплачивают курс. Из трех видов оплаты вероятность посетить форум выше при личной оплате.
+
+
+Стратегические выводы:
+
+  1. Тип заданий влияет на количество попыток
+  2. Тип заданий влияет на то, сколько раз зайдет студент на форум во время решения задачи.
+  3. Тип заданий влияет на то, зайдет студент во время решения задачи на форум или нет.
+  4. Студент будет чаще заходить на форум, если проходит курс по программированию и оплатил курс из личных средств.
+
+Что еще следует изучить:
+
+  1. Обязательное было задание или нет;
+  2. Длительность прохождения задания;
+  3. Неделя курса;
+  4. Учет пир-ревью заданий.
+ 
+ 
+
+
+
+
+
