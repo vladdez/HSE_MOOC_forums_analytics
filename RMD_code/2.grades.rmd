@@ -28,7 +28,9 @@ remove_outliers <- function(x, na.rm = TRUE, ...) {
 
 ```{r, include=FALSE}
 wd <- getwd()
-students <- fread("../data/students.csv") %>% group_by(course_id) %>%
+students <- fread("../data/students.csv")  %>% group_by(course_id) %>%   
+  # remove courses with grade = 100 for all users
+  mutate(sd = sd(course_grade_overall)) %>% filter(sd != 0) %>% 
   mutate(grade_norm = round((course_grade_overall-min(course_grade_overall))/(max(course_grade_overall)-min(course_grade_overall)), digits = 2), grade_dum = case_when(
     course_grade_overall >= median(course_grade_overall) ~ 1,
     course_grade_overall < median(course_grade_overall)  ~ 0
@@ -56,7 +58,7 @@ students$spec_b <-factor(students$spec_b)
 
 - Все рассматриваемые студенты закончили курс.
 - Исключен преподавательский состав.
-- Исключены два курса, в которых все окончившие курс получали оценку 100 баллов.
+- На двух курсах, все окончившие курс получали оценку 100 баллов: "delivery-problem",            "python-osnovy-programmirovaniya". Эти курсы не буудт учтены при подсчете оценок.
 - Два курса (discrete-maths и python-basic) найти не удалось.
 - Анализируем 56 курсов.
 - 34 индивидуальных курса и 20 курсов из специализаций.

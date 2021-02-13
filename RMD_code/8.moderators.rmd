@@ -1,6 +1,15 @@
 ---
 title: "Влияние модераторов на посещение форума. Выживаемость"
-output: html_document
+output:
+  html_document:
+    code_download: yes
+    fontsize: 8pt
+    highlight: textmate
+    number_sections: no
+    theme: flatly
+    toc: yes
+    toc_float:
+      collapsed: no
 ---
 
 
@@ -15,6 +24,7 @@ library(tidyr)
 library(arm)
 library(rstatix)
 library(ggpubr)
+library(sjPlot)
 
 remove_outliers <- function(x, na.rm = TRUE, ...) {
   qnt <- quantile(x, probs=c(.25, .75), na.rm = na.rm, ...)
@@ -31,23 +41,18 @@ remove_outliers <- function(x, na.rm = TRUE, ...) {
 
 ```{r, include=FALSE}
 wd <- getwd()
-students <- fread("../data/students.csv") %>% group_by(course_id) %>%
-  mutate(vis_p = remove_outliers(vis_p), duration = remove_outliers(duration)) %>%  mutate(grade_norm = remove_outliers(grade_norm)) %>% filter(duration < 750)
-students$vis_b <-factor(students$vis_b)
-students$spec_b <-factor(students$spec_b)
-
 
 courses <- fread("../data/courses.csv")%>%
-  mutate(vis_learner_p_norm = round(student_n / vis_learner_p, digits = 2), student_vis_mean = remove_outliers(student_vis_mean), passing_rate = passing_rate * 100,
-         q_staff_n = round(q_staff / student_n, digits = 2) *100, ans_staff_n = round(ans_staff / student_n, digits = 2)*100, q_learner_n = round(q_learner / student_n, digits = 2) *100,
+  mutate(vis_learner_p_norm = round(student_n / vis_learner_p, digits = 2), 
+         student_vis_mean = remove_outliers(student_vis_mean), 
+         passing_rate = passing_rate * 100,
+         q_staff_n = round(q_staff / student_n, digits = 2) *100, 
+         ans_staff_n = round(ans_staff / student_n, digits = 2)*100, 
+         q_learner_n = round(q_learner / student_n, digits = 2) *100,
          ans_learner_n = round(ans_learner / student_n, digits = 2) *100,
-         q_staff_b = case_when(
-    q_staff_n >= 1 ~ 1,
-    q_staff_n < 1  ~ 0
-), ans_staff_b = case_when(
-    ans_staff_n >= 1 ~ 1,
-    ans_staff_n < 1  ~ 0
-))
+         q_staff_b = ifelse(q_staff_n >= 1, 1, 0), 
+         ans_staff_b = ifelse(ans_staff_n >= 1, 1, 0))
+
 
 
 ```
@@ -69,7 +74,6 @@ courses <- fread("../data/courses.csv")%>%
 
 ### Описание баз данных
 
-- **students** - длинная база данных, с данными на уровне студентов
 - **courses** - короткая база данных, с данными на уровне курсов
 
 ### Описание переменных
@@ -93,21 +97,6 @@ courses <- fread("../data/courses.csv")%>%
 - **Метрика выживаемости**
   - ***passing_rate*** - прошедшие курс / записавшиеся на курс
 
-
-```{r , echo=FALSE}
-
-cat(sprintf("Распределение курсов по типу заданий:\n"))
-a <- courses %>% summarise(yes = sum(is_prog_b), no = n() - yes)
-b <- courses %>% summarise(yes = sum(is_math_b), no = n() - yes)
-c <- courses %>% summarise(yes = sum(is_peer_b), no = n() - yes)
-d <- rbind(a, b, c)
-d$course_with <- c("prog", "math", "peer")
-d %>% dplyr::select(course_with, yes, no)
-courses <-  courses %>% mutate(is_prog_b = factor(is_prog_b),
-  is_math_b = factor(is_math_b),is_peer_b = factor(is_peer_b), ans_staff_b = factor(ans_staff_b), q_staff_b = factor(q_staff_b))
-```
-
-
 ## 3. Модераторы и их влияние
 ### 3.1 Описание переменных и обоснование их выбора
 
@@ -118,6 +107,12 @@ cat(sprintf("Распределение переменной q_staff_n:\n"))
 table(courses$q_staff_n)
 cat(sprintf("\nРаспределение переменной ans_staff_n:\n"))
 table(courses$ans_staff_n)
+```
+```{r, echo=FALSE}
+cat(sprintf("Распределение переменной q_staff_b:\n"))
+table(courses$q_staff_b)
+cat(sprintf("\nРаспределение переменной ans_staff_b:\n"))
+table(courses$ans_staff_b)
 ```
 
 ```{r, echo=FALSE}
@@ -152,110 +147,78 @@ cat(sprintf("Количество вопросов модераторов кор
 
 ```
 
+
+```{r}
+hist(courses$q_learner_n)
+hist(courses$ans_learner_n)
+hist(courses$q_staff_n)
+hist(courses$ans_staff_n)
+```
+
 ### 3.2 Рассчеты
 
 ### 3.2.1 Влияние модераторской активности на вопросы пользователей
 
-```{r, echo=FALSE}
-cat(sprintf("У рассматриваемых переменных наблюдается гетероскедастичность, поэтому каждая из них подвергается трансформации с помощью функции log()\nЧтобы вывести из трансформации мы экспоненциируемы коэффициенты"))
-
-```
 
 ```{r}
-m1 <-  lm(log(1+q_learner_n) ~ log(1 + q_staff_n) + log(1 + ans_staff_n), courses)
+m1 <-  glm.nb(q_learner ~ q_staff_b + ans_staff_b, courses)
 summary(m1)
+
 ```
+```{r}
+tab_model(m1)
+```
+
 ```{r , echo=FALSE}
 a <- (exp(m1$coefficients[3]))
-cat(sprintf("Рост количества нормализованных ответов модераторов на 1%% увеличит нормализованное количество вопросов пользователей на %.2f%%.\n", a))
+cat(sprintf("Если модераторы форума отвечают на вопросы, то это увличивает ожидаемое количество вопросов пользователей в %.2f раз.\n", a))
 
-```
-
-```{r}
-courses %>%
-  ggplot(aes(y = log(1 + q_learner_n), x = log(1 + ans_staff_n))) + geom_point() +  geom_smooth(method="glm", color = "red")
-courses %>%
-  ggplot(aes(y = log(1+ q_learner_n), x = log(1+ q_staff_n))) + geom_point() +  geom_smooth(method="glm", color = "red")
 ```
 
 
 ### 3.2.2 Влияние модераторской активности на ответы пользователей
-
 ```{r}
-m1 <-  lm(log(ans_learner_n +1) ~ log(1+q_staff_n) + log(1+ ans_staff_n), courses)
+m1 <-  glm.nb(ans_learner ~ q_staff_b + ans_staff_b, courses)
 summary(m1)
+
 ```
+```{r}
+tab_model(m1)
+```
+
 ```{r , echo=FALSE}
-a <- (exp(m1$coefficients[2]))
-cat(sprintf("Рост количества нормализованных вопросов модераторов на 1%% увеличит нормализованное количество ответов пользователей на %.2f%%.\n", a))
-
+cat(sprintf("Если модераторы форума отвечают на вопросы, то это увличивает ожидаемое количество ответов пользователей в %.2f раз.\n", exp(m1$coefficients[2])))
+cat(sprintf("Если модераторы форума задают вопросы, то это увличивает ожидаемое количество ответов пользователей в %.2f раз.\n", exp(m1$coefficients[3])))
 ```
-
-```{r, message=FALSE, warning=FALSE}
-courses %>%
-  ggplot(aes(y = log(1 + ans_learner_n), x = log(1+ ans_staff_n))) + geom_point() +  geom_smooth(method="glm", color = "red")
-
-courses %>%
-  ggplot(aes(y = log(1+ ans_learner_n), x = log(1+ q_staff_n))) + geom_point() +  geom_smooth(method="glm", color = "red")
-```
-
 
 ### 3.2.3 Влияние модераторской активности на посещение форума пользователями
 
 ```{r}
-m1 <-  lm(log(student_vis_mean) ~ log(1+q_staff_n) + log(1+ ans_staff_n), courses)
-summary(m1)
-
-```
-```{r , echo=FALSE}
-a <- (exp(m1$coefficients[2]))
-cat(sprintf("Рост количества нормализованных ответов модераторов на 1%% увеличит среднее посещение форума студентами на %.2f%%.\n", a))
-
-```
-
-```{r, message=FALSE, warning=FALSE}
-courses %>%
-  ggplot(aes(y = log(1 + student_vis_mean), x = log(1+ q_staff_n))) + geom_point() +  geom_smooth(method="glm", color = "red")
-```
-
-```{r, message=FALSE, warning=FALSE}
-courses %>%
-  ggplot(aes(y = log(1 +student_vis_mean), x = log(1 + ans_staff_n))) + geom_point() +  geom_smooth(method="glm", color = "red")
-
-```
-
-
-## 4. Взаимодействие выживаемости и форумной активности
-
-```{r}
- courses %>%
-  ggplot(aes(x = passing_rate, y = log(1 +ans_staff_n))) + geom_point() +  geom_smooth(method = "lm")
-courses %>%
-  ggplot(aes(x = passing_rate, y = log(1 +q_staff_n))) + geom_point() +  geom_smooth(method = "lm")
-```
-
-```{r}
-
-m1 <-  lm(log(passing_rate) ~ log(1+q_staff_n) + log(1+ ans_staff_n), courses)
-summary(m1)
-```
-
-```{r, echo=FALSE}
-
-cat(sprintf("Увеличение на 1 пункт в выживаемости курса уменьшает на %.3f пунктов значение нормализованных ответов модераторов.\nВеличина p = %.3f", exp(m1$coefficients[1]) - exp(m1$coefficients[1] + m1$coefficients[3]), summary(m1)$coefficients[12]))
-
-```
-```{r}
-m1 <-  lm(log(passing_rate) ~ log(1+q_learner_n) + log(1+ ans_learner_n), courses)
+m1 <-  lm(student_vis_mean ~ q_staff_b + ans_staff_b, courses)
 summary(m1)
 
 ```
 
-```{r, echo=FALSE}
+На число захдово на форум активность модераторов не повлияла. 
 
-cat(sprintf("Увеличение на 1 пункт в выживаемости курса уменьшает на %.3f пунктов значение нормализованных вопросов пользователей\nВеличина p = %.3f", exp(m1$coefficients[1]) - exp(m1$coefficients[1] + m1$coefficients[2]), summary(m1)$coefficients[10]))
+
+```{r}
+
+stat.test <- courses %>%
+  wilcox_test(student_vis_mean ~ q_staff_b) %>%
+  add_significance()
+bxp <- ggboxplot(
+  courses, x = "q_staff_b", y = "student_vis_mean",
+  ylab = "Количество студентов на курсе", xlab = "Отвечают ли модераторы?", add = "jitter") +
+scale_x_discrete(labels=c("Нет","Да"))
+stat.test <- stat.test %>% add_xy_position(x = "group")
+bxp +
+  stat_pvalue_manual(stat.test, tip.length = 0) +
+  labs(subtitle = get_test_label(stat.test, detailed = TRUE))
+
 
 ```
+
 
 ## Выводы
 

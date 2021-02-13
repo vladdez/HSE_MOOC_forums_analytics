@@ -1,6 +1,15 @@
 ---
 title: "Выживаемость и посещение форума"
-output: html_document
+output:
+  html_document:
+    code_download: yes
+    fontsize: 8pt
+    highlight: textmate
+    number_sections: no
+    theme: flatly
+    toc: yes
+    toc_float:
+      collapsed: no
 ---
 
 
@@ -15,6 +24,7 @@ library(tidyr)
 library(arm)
 library(rstatix)
 library(ggpubr)
+library(stargazer)
 
 remove_outliers <- function(x, na.rm = TRUE, ...) {
   qnt <- quantile(x, probs=c(.25, .75), na.rm = na.rm, ...)
@@ -30,19 +40,8 @@ remove_outliers <- function(x, na.rm = TRUE, ...) {
 ```{r, include=FALSE}
 wd <- getwd()
 
-
-
-courses <- fread("../data/courses.csv")%>%
-  mutate(vis_learner_p_norm = round(student_n / vis_learner_p, digits = 2), student_vis_mean = remove_outliers(student_vis_mean), passing_rate = passing_rate * 100,
-         q_staff_n = round(q_staff / student_n, digits = 2) *100, ans_staff_n = round(ans_staff / student_n, digits = 2)*100, q_learner_n = round(q_learner / student_n, digits = 2) *100,
-         ans_learner_n = round(ans_learner / student_n, digits = 2) *100,
-         q_staff_b = case_when(
-    q_staff_n >= 1 ~ 1,
-    q_staff_n < 1  ~ 0
-), ans_staff_b = case_when(
-    ans_staff_n >= 1 ~ 1,
-    ans_staff_n < 1  ~ 0
-))
+courses <- fread("../data/courses.csv") %>%
+  mutate(vis_learner_p_norm = round(student_n / vis_learner_p, digits = 2), student_vis_mean = remove_outliers(student_vis_mean), passing_rate = passing_rate * 100)
 
 
 ```
@@ -96,11 +95,23 @@ courses <- fread("../data/courses.csv")%>%
 
 ### 2.1 Анализ распределения остатков
 
+Распределение переменных модели:
+
+```{r}
+hist(courses$passing_rate)
+hist(courses$student_vis_mean)
+hist(log(courses$student_vis_mean))
+```
+
+
 ```{r, message=FALSE, warning=FALSE}
 courses %>%
   ggplot(aes(x = passing_rate, y = student_vis_mean)) + geom_point() +  geom_smooth(method = "lm")
 
 ```
+
+Распределение остатков зависимой переменной:
+
 
 ```{r}
 m1 <-  lm((student_vis_mean) ~ passing_rate, courses)
@@ -111,21 +122,37 @@ qqnorm(res)
 qqline(res)
 ```
 
-```{r, echo=FALSE}
+Мы видим, что распределение остатков нельзя назвать нормальным поскольку большая часть значений остатков  student_vis_mean скошены. Модель недооценивает значения. 
 
-cat(sprintf("Мы видим, что распределение остатков нельзя назвать нормальным поскольку большая часть значений student_vis_mean распределены близко к нулю.\nПоэтому мы трансформировали эту переменную с помощью функции log() \n"))
+Поэтому мы трансформировали эту переменную с помощью функции log()
 
-```
+### 2.2 Трансформированная регрессия
+
+
 
 ```{r}
 m1 <-  lm(log(student_vis_mean) ~ passing_rate, courses)
 summary(m1)
 ```
+
+
 ```{r, echo=FALSE}
 
-cat(sprintf("Теперь остатки распределены более равномерно \n"))
+cat(sprintf("Изменение на 1 пункт в выживаемости курса уменьшает на %.3f пунктов среднее количество посещений форума.\nЧтобы получить данное значение мы нашли разницу между интерсептом и интерсепт + угол наклона, а полученное значение экспоненциировали\nЭто изменение значимо с p = %.3f", exp(m1$coefficients[1]) - exp(m1$coefficients[1] + m1$coefficients[2]), summary(m1)$coefficients[8]))
 
 ```
+```{r, echo=FALSE,results='asis'}
+
+stargazer(m1,type="html",
+          intercept.bottom = FALSE,  single.row=TRUE, notes.append = FALSE,
+          omit.stat=c("ser"), star.cutoffs = c(0.05, 0.01, 0.001),
+          header=FALSE)
+
+```
+
+
+
+Визуализация 
 
 ```{r, message=FALSE, warning=FALSE}
 courses %>%
@@ -133,6 +160,14 @@ courses %>%
 
 
 ```
+
+```{r, echo=FALSE}
+
+cat(sprintf("Теперь остатки распределены более равномерно \n"))
+
+```
+
+Проверка нормальности распределения 
 ```{r}
 m1 <-  lm(log(student_vis_mean) ~ passing_rate, courses)
 res <- resid(m1)
@@ -143,12 +178,6 @@ qqline(res)
 ```
 
 
-
-```{r, echo=FALSE}
-
-cat(sprintf("Изменение на 1 пункт в выживаемости курса уменьшает на %.3f пунктов среднее количество посещений форума.\nЧтобы получить данное значение мы нашли разницу между интерсептом и интерсепт + угол наклона, а полученное значение экспоненциировали\nЭто изменение значимо с p = %.f", exp(m1$coefficients[1]) - exp(m1$coefficients[1] + m1$coefficients[2]), summary(m1)$coefficients[7]))
-
-```
 
 ## Выводы
 
