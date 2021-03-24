@@ -41,7 +41,7 @@ remove_outliers <- function(x, na.rm = TRUE, ...) {
 wd <- getwd()
 
 courses <- fread("../data/courses.csv") %>%
-  mutate(vis_learner_p_norm = round(student_n / vis_learner_p, digits = 2), student_vis_mean = remove_outliers(student_vis_mean), passing_rate = passing_rate * 100)
+  mutate(vis_learner_p_norm = round(student_n / vis_learner_p, digits = 2), student_vis_mean = remove_outliers(student_vis_mean), passing_rate = round(passing_rate, digits = 2))
 
 
 ```
@@ -52,11 +52,6 @@ courses <- fread("../data/courses.csv") %>%
 
   1. Как тип курса влияет на выживаемость студентов?
 
-## Содержание отчета
-
-  1. Связь между выживаемостью на курсе и средним посещением форума на курсе
-  
-### Описание баз данных
 
 - **students** - длинная база данных, с данными на уровне студентов
 - **courses** - короткая база данных, с данными на уровне курсов
@@ -141,24 +136,11 @@ summary(m1)
 cat(sprintf("Изменение на 1 пункт в выживаемости курса уменьшает на %.3f пунктов среднее количество посещений форума.\nЧтобы получить данное значение мы нашли разницу между интерсептом и интерсепт + угол наклона, а полученное значение экспоненциировали\nЭто изменение значимо с p = %.3f", exp(m1$coefficients[1]) - exp(m1$coefficients[1] + m1$coefficients[2]), summary(m1)$coefficients[8]))
 
 ```
-```{r, echo=FALSE,results='asis'}
-
-stargazer(m1,type="html",
-          intercept.bottom = FALSE,  single.row=TRUE, notes.append = FALSE,
-          omit.stat=c("ser"), star.cutoffs = c(0.05, 0.01, 0.001),
-          header=FALSE)
-
-```
-
-
-
 Визуализация 
 
 ```{r, message=FALSE, warning=FALSE}
 courses %>%
   ggplot(aes(x = passing_rate, y = log(student_vis_mean))) + geom_point() +  geom_smooth(method = "lm")
-
-
 ```
 
 ```{r, echo=FALSE}
@@ -177,11 +159,25 @@ qqnorm(res)
 qqline(res)
 ```
 
+## 3. Выживаемость и тип курса
 
+```{r}
+m1 <-  lm(passing_rate ~ is_prog_b, courses)
+summary(m1)
+```
+```{r}
+
+wt1 <- wilcox.test(passing_rate ~ is_prog_b, courses)
+w1 <- courses %>% wilcox_effsize(passing_rate ~ is_prog_b)
+wt1
+w1
+```
+```{r, message=FALSE, warning=FALSE}
+courses %>%
+  ggplot(aes(y = passing_rate, x = factor(is_prog_b))) + geom_boxplot() 
+```
 
 ## Выводы
-
-Тактические выводы:
 
     1. Чем сложнее курс, тем чаще студенты заходят на форум. Увеличение на 1 пункт в выживаемости курса уменьшает на 1.12 пунктов среднее количество посещений форума.
     2.  Увеличение на 1 пункт в выживаемости курса уменьшает на 11.351 пунктов значение нормализованных вопросов пользователей и на 7.413 пунктов значение нормализованных ответов модераторов.

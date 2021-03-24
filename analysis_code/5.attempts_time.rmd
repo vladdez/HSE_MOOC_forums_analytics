@@ -1,0 +1,268 @@
+---
+title: "Как тип задания влияет на число попыток и время взаимодействия с заданием"
+output:
+  html_document:
+    code_download: yes
+    fontsize: 8pt
+    highlight: textmate
+    number_sections: no
+    theme: flatly
+    toc: yes
+    toc_float:
+      collapsed: no
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+library(dplyr)
+library(data.table)
+library(lme4)
+library(ggplot2)
+library(parameters)
+library(rstatix)
+library(blmeco)
+library(arm) # for display()
+
+remove_outliers <- function(x, na.rm = TRUE, ...) {
+  qnt <- quantile(x, probs=c(.25, .75), na.rm = na.rm, ...)
+  H <- 1.5 * IQR(x, na.rm = na.rm)
+  y <- x
+  y[x < (qnt[1] - H)] <- NA
+  y[x > (qnt[2] + H)] <- NA
+  y
+}
+
+```
+
+
+
+```{r}
+wd <- getwd()
+assignments <- fread("unzip -cq ../data/assignments.zip")  %>% group_by(course_name)   %>% mutate(course_item_type_desc = factor(course_item_type_desc)) %>% ungroup()
+
+```
+
+## 0. Об отчете
+
+### Исследовательские вопросы
+
+  1. Как разные типы заданий влияют на количество попыток?
+  2. Как разные типы заданий влияют на время взаимодействия с заданием?
+
+### Описание баз данных и ее переменных
+
+  1. База состоит из 49 курсов. У 9 курсов есть одновременно тесты и задания по программированию, я называю их ***парные курсы***.
+  2. Полная база - все 49 курсов. База парных курсов - 9 курсов
+  3. Рассматриваются только задания, с которыми студенты справились.
+  4. Рассматриваются только студенты, которые закончили курс.
+  5. Рассматриваются два типа заданий: тест и задание по программированию.
+  6. Не рассматриваются тесты внутри видео.
+
+### Переменные
+  - **attempts** - Попытки за задание. Сколько попыток этот студент сделал при решении этого задания;
+  - **assessment_id** - токен задания;
+  - **hse_user_id** - токен студента;
+  - **course_item_type_desc** - тип задания;
+    - ***lecture*** - тест в видео (исключаю из анализа);
+    - ***test*** - тест;
+    - ***programming*** - задание по программированию;
+    
+    
+## 1. Попытки
+
+####  Анализ распределения
+
+Для наглядности рассчитаем медиану медианных значений попыток по курсу для заданий по программированию и для тестов:
+
+Без учета вариации между курсами:
+
+```{r}
+assignments %>% group_by(course_item_type_desc) %>% summarise(attempts_vis_tw_median = median(attempts), attempts_vis_tw_mean = median(attempts))
+```
+
+С учетом вариации между курсами:
+
+```{r}
+assignments %>% group_by(course_name, course_item_type_desc) %>% summarise(attempts_median = median(attempts), attempts_mean = mean(attempts)) %>% group_by(course_item_type_desc) %>% summarise(attempts_vis_tw_median = median(attempts_median), attempts_vis_tw_mean = median(attempts_mean))
+
+```
+
+```{r}
+summary(assignments$attempts)
+table(assignments$attempts)
+sum(table(assignments$attempts)[1:11]) / nrow(assignments)
+
+```
+ 
+Округлим все значения больше 11, поскольку 99% студентов совершают от 0 до 11 попыток.
+
+```{r}
+tw <- assignments %>% mutate(attempts = case_when(
+    attempts < 11 ~ attempts,
+    attempts >= 11 ~ as.integer(11)
+))
+table(tw$attempts, tw$course_item_type_desc)
+hist(tw$attempts)
+```
+
+Распределение попыток на всех курсах после округления:
+
+```{r}
+summary(tw$attempts)
+table(tw$attempts)
+```
+```{r}
+tw  %>% ggplot(aes(x = course_item_type_desc, y = attempts)) + geom_boxplot() + 
+  geom_point() +
+  scale_x_discrete(labels=c("Программирование", "Тест")) + stat_summary(fun.y = "median", color = "red",  size = 3, geom = "point") +
+  labs(x = "Тип задания", y = "Число посещений") + ggtitle("Попытки за задание") + theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+#### Тест Манна-Уитни
+
+```{r}
+wilcox.test(attempts ~ course_item_type_desc, tw)
+tw %>% ungroup() %>% wilcox_effsize(attempts ~ course_item_type_desc)
+```
+
+#### Анализ распределения
+
+```{r}
+m0p <- glmer(attempts ~ 1 + (1|course_name), family = "poisson",
+            tw)
+dispersion_glmer(m0p)
+```
+
+```{r}
+m0 <- glmer(attempts ~ 1 + (1|course_name), family = "poisson",
+            tw)
+summary(m0)
+
+
+```
+```{r, include=FALSE}
+sd <- as.numeric(data.frame(VarCorr(m0))[5])
+variance2 <- sd ^2
+coef =  summary(m0)$coefficients[1]
+c <- c(round(exp(coef - sd), digits = 0), round(exp(coef + sd), digits = 0))
+```
+
+```{r , echo=FALSE}
+cat(sprintf("\nCреднее количество попыток за задание на среднем курсе: %d\n", round(exp(coef), digit = 0)))
+cat(sprintf("Эта вероятность будет колебаться между: %d и %d.\n", c[1], c[2]))
+```
+
+
+#### Попытки и тип задания
+
+
+```{r}
+m1 <- glmer(attempts ~ course_item_type_desc + (1|course_name), family = "poisson",
+            tw)
+summary(m1)
+```
+```{r, include=FALSE}
+sd <- as.numeric(data.frame(VarCorr(m1))[5])
+coef =  summary(m1)$coefficients
+variance5 <- sd ^2
+
+```
+
+```{r , echo=FALSE}
+
+cat(sprintf("\nКоличество попыток за задание по программированию: %.2f.\n", round(exp(coef[1]), digit = 2)))
+cat(sprintf("Количество попыток за тесты: %.2f.\n", round(exp(coef[1] + coef[2]), digit = 2)))
+cat(sprintf("Количество попыток за задание по программированию выше количества попыток за тест в %.2f раз.\n", round(exp(coef[2]), digit = 2)))
+```
+```{r}
+#confint(m1)
+```
+
+
+
+## 2. Время выполнения задания
+
+```{r}
+summary(assignments$assignment_time)
+```
+
+Без учета вариации между курсами:
+
+```{r}
+assignments %>% group_by(course_item_type_desc) %>% summarise(assignment_time_vis_tw_median = median(assignment_time), assignment_time_vis_tw_mean = mean(assignment_time))
+```
+
+```{r}
+wilcox.test(assignment_time ~ course_item_type_desc, assignments)
+assignments %>% ungroup() %>% wilcox_effsize(assignment_time ~ course_item_type_desc)
+```
+
+### 2.1 Анализ распределения
+
+```{r}
+summary(assignments$assignment_time)
+sum(table(assignments$assignment_time)[1:144]) / nrow(assignments)
+
+```
+
+
+```{r}
+tw <- assignments %>% filter(assignment_time < 144)
+#table(tw$attempts, tw$course_item_type_desc)
+hist(tw$assignment_time)
+summary(tw$assignment_time)
+```
+
+
+```{r}
+m0p <- glmer(assignment_time ~ 1 + (1|course_name), family = "poisson",
+            tw)
+dispersion_glmer(m0p)
+```
+
+```{r}
+m0 <- glmer.nb(assignment_time ~ 1 + (1|course_name), 
+            tw)
+dispersion_glmer(m0)
+summary(m0)
+
+
+```
+
+```{r, include=FALSE}
+sd <- as.numeric(data.frame(VarCorr(m0))[5])
+variance2 <- sd ^2
+coef =  summary(m0)$coefficients[1]
+c <- c(round(exp(coef - sd), digits = 0), round(exp(coef + sd), digits = 0))
+```
+
+```{r , echo=FALSE}
+cat(sprintf("\nCреднее количество минут за задание на среднем курсе: %d\n", round(exp(coef), digit = 0)))
+cat(sprintf("Эта вероятность будет колебаться между: %d и %d.\n", c[1], c[2]))
+```
+
+
+### 2.2 Время выполнения задания и тип задания
+
+
+```{r}
+m1 <- glmer.nb(assignment_time ~ course_item_type_desc + (1|course_name), tw)
+summary(m1)
+
+```
+
+```{r, include=FALSE}
+sd <- as.numeric(data.frame(VarCorr(m1))[5])
+coef =  summary(m1)$coefficients
+variance5 <- sd ^2
+
+```
+
+```{r , echo=FALSE}
+
+cat(sprintf("\nКоличество минут на задание по программированию: %.2f.\n", round(exp(coef[1]), digit = 2)))
+cat(sprintf("Количество минут за тесты: %.2f.\n", round(exp(coef[1] + coef[2]), digit = 2)))
+cat(sprintf("Количество минут за задание по программированию выше количества попыток за тест в %.2f раз.\n", round(exp(coef[2]), digit = 2)))
+```

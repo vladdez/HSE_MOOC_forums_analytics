@@ -1,0 +1,215 @@
+---
+title: "Как тип задания влияет на посещение форума"
+output:
+  html_document:
+    code_download: yes
+    fontsize: 8pt
+    highlight: textmate
+    number_sections: no
+    theme: flatly
+    toc: yes
+    toc_float:
+      collapsed: no
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+library(dplyr)
+library(data.table)
+library(lme4)
+library(ggplot2)
+library(parameters)
+library(rstatix)
+library(blmeco)
+library(arm) # for display()
+
+remove_outliers <- function(x, na.rm = TRUE, ...) {
+  qnt <- quantile(x, probs=c(.25, .75), na.rm = na.rm, ...)
+  H <- 1.5 * IQR(x, na.rm = na.rm)
+  y <- x
+  y[x < (qnt[1] - H)] <- NA
+  y[x > (qnt[2] + H)] <- NA
+  y
+}
+
+```
+
+## 1. Об отчете
+
+### Исследовательские вопросы
+
+  1. Как тип заданий влияет на количество посещенных страниц форума при выполнении задания?
+  2. Как тип заданий влияет на посещение форума при выполнении задания?
+  3. Как тип заданий влияет на долю посещений форума при взаимодействии с заданием?
+
+### Описание баз данных и ее переменных
+
+  1. База состоит из 49 курсов. У 9 курсов есть одновременно тесты и задания по программированию, я называю их ***парные курсы***.
+  2. Полная база - все 49 курсов. База парных курсов - 9 курсов
+  3. Рассматриваются только задания, с которыми студенты справились.
+  4. Рассматриваются только студенты, которые закончили курс.
+  5. Рассматриваются два типа заданий: тест и задание по программированию.
+  6. Не рассматриваются тесты внутри видео.
+
+```{r}
+wd <- getwd()
+assignments <- fread("unzip -cq ../data/assignments.zip")  %>% group_by(course_name)   %>% mutate(course_item_type_desc = factor(course_item_type_desc)) %>% ungroup()
+
+```
+
+
+#### Количество курсов в анализе
+
+- В оригинальной базе данных 60 курсов. На данный момент не учтены курсы, на которых есть пир-ревью: "stalinism" "complex-variable" "moscow-semantic-school" "intro-to-numerical-analysis" "lexical-semantic-typology" "general-relativity" "modular-forms-jacobi" "financial-instruments-capstone".
+- Для расчета некоторых курсов не хватило вычислительной мощности: "python-osnovy-programmirovaniya"
+
+```{r}
+length(unique(assignments$course_name))
+```
+
+####  Количество парных курсов
+
+```{r}
+tw_paired<- assignments  %>% group_by(course_name) %>% filter(assessment_status == 1) %>%
+  mutate(n = n_distinct(course_item_type_desc)) %>% filter(n == 2)
+
+length(unique(tw_paired$course_name))
+
+```
+
+### Переменные
+  - **attempts** - Попытки за задание. Сколько попыток этот студент сделал при решении этого задания;
+  - **vis_tw** - Число посещенных страниц форума. Сколько раз этот студент посещал форум во время прохождения этого задания;
+  - **vis_tw_b** - Посещение форума. Посещал ли студент форум хотя бы раз;
+  - **rate** - Доля посещений форума. Какая часть из студенто-заданий на данном курсе побудила студентов зайти на форум.
+    - студенто-задание - взаимодействие одного студента с одним заданием.  
+    - rate = число студенто-заданий, во время решения которых студент зашел на форум / число студенто-заданий на курсе.
+    - например: 1 - все задания побудили всех студентов зайти на форум, 0 - ни одно задание не побудило ни одного студента зайти на форум.
+  - **assessment_status** - Статус выполнения задания: 1 - удалось решить, 0 - не удалось решить.
+  - **assignments** - база данных, с данными на уровне студентов
+  - **assessment_id** - токен задания;
+  - **hse_user_id** - токен студента;
+  - **course_item_type_desc** - тип задания;
+    - ***lecture*** - тест в видео (исключаю из анализа);
+    - ***test*** - тест;
+    - ***programming*** - задание по программированию;
+
+
+
+## 1. Число посещенных страниц
+
+<span style="color:green">**Differ!**</span>
+
+Для наглядности визуализируем среднее число посещений форума во время выполнения тестов и заданий по программированию:
+
+```{r}
+summary(assignments$vis_tw)
+#table(assignments$vis_tw)
+sum(table(assignments$vis_tw)[1:45]) / nrow(assignments)
+```
+97% студентов посещают форум от 0 до 45 раз. Округлим значение vis_tw до 60.
+
+
+```{r}
+tw <- assignments %>% mutate(attempts = case_when(
+    vis_tw < 45 ~ vis_tw,
+    vis_tw >= 45 ~ as.integer(45)
+))
+
+tw  %>%  group_by(course_name, course_item_type_desc) %>% summarise(vis_tw_mean = round(mean(vis_tw), digits = 1), vis_tw_median = round(median(vis_tw), digits = 1)) %>% group_by(course_item_type_desc) %>% summarise(vis_tw_mean = round(mean(vis_tw_mean), digits = 1), vis_tw_median = round(median(vis_tw_median), digits = 1))
+
+tw  %>% group_by(course_item_type_desc) %>% summarise(vis_tw_mean = round(mean(vis_tw), digits = 1), vis_tw_median = round(median(vis_tw), digits = 1))
+
+```
+
+Визуализируем число посещений форума во время выполнения тестов и заданий по программированию:
+
+```{r}
+tw  %>% ggplot(aes(x = course_item_type_desc, y = vis_tw)) + geom_boxplot() + geom_point() + stat_summary(fun.y = "mean", color = "red",  size = 3, geom = "point")  + scale_x_discrete(labels=c("Программирование", "Тест")) +
+  labs(x = "Тип задания", y = "Число посещений") + ggtitle("Среднее число посещений форума во время задания") + theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+```{r}
+tw  %>% ggplot(aes(x = course_item_type_desc, y = vis_tw)) + geom_boxplot() + geom_point() + stat_summary(fun.y = "median", color = "red",  size = 3, geom = "point") + scale_x_discrete(labels=c("Программирование", "Тест")) +
+  labs(x = "Тип задания", y = "Числшо посещений") + ggtitle("Медиана посещений форума во время задания") + theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+#### Тест Манна-Уитни
+
+
+```{r}
+wilcox.test(vis_tw ~ course_item_type_desc, tw, exact = FALSE)
+tw %>% ungroup() %>% wilcox_effsize(vis_tw ~ course_item_type_desc)
+```
+
+
+## 2. Факт посещения
+
+```{r}
+tw <- assignments %>%
+  mutate(n = n_distinct(course_item_type_desc)) %>% mutate(vis_tw_b = case_when(
+    vis_tw != 0 ~ 1,
+    vis_tw == 0 ~ 0
+))
+
+```
+
+
+```{r}
+wilcox.test(vis_tw_b ~ course_item_type_desc, tw, exact = FALSE)
+tw %>% ungroup() %>% wilcox_effsize(vis_tw_b ~ course_item_type_desc)
+```
+
+```{r}
+tw  %>% ggplot(aes(x = course_item_type_desc, y = vis_tw_b)) + geom_boxplot() + geom_point() + stat_summary(fun.y = "mean", color = "red",  size = 3, geom = "point")  + scale_x_discrete(labels=c("Программирование", "Тест")) +
+  labs(x = "Тип задания", y = "Вероятность посещения") + ggtitle("Посещение форума") + theme(plot.title = element_text(hjust = 0.5))
+
+
+```
+
+## 3. Доля посещений во время взаимодействия с заданием
+
+<span style="color:green">**Differ!**</span>
+
+Как рассчитывается эта переменная:
+
+  1. Создаем переменную vis_tw_b - это бинарная переменная,которая указывает зашел студент на форум во время выполнения этого задания или нет;
+  2. Группируем данные по курсам и по заданиям. Группировка по курсам потому что доля посещений может отличаться от курса к курсу;
+  3. Суммируем внутри подгрупп число заходов на форум. Делим на число студенто-заданий;
+  4. Получаем значения по каждому курсу и типу заданий;
+  5. Тест Манна-Уитни проводим по этим значения.
+  
+Посчитаем среднюю долю посещений для заданий по программированию и для тестов:
+
+```{r}
+tw <- assignments %>%
+  mutate(n = n_distinct(course_item_type_desc)) %>% mutate(vis_tw_b = case_when(
+    vis_tw != 0 ~ 1,
+    vis_tw == 0 ~ 0
+)) %>%  group_by(course_name,  course_item_type_desc) %>%
+  summarise(students_per_type = n(), students_per_type_visited = sum(vis_tw_b), rate = round(students_per_type_visited / students_per_type, digit = 2))
+
+
+tw %>% group_by(course_item_type_desc) %>% summarise(median_rate = median(rate), mean_rate = mean(rate))
+
+```
+
+
+Визуализируем долю посещений форума для каждого курса во время выполнения тестов и заданий по программированию:
+
+```{r}
+tw  %>% ggplot(aes(x = course_item_type_desc, y = rate)) + geom_boxplot() + geom_point() + stat_summary(fun.y = "mean", color = "red",  size = 3, geom = "point")  + scale_x_discrete(labels=c("Программирование", "Тест")) +
+  labs(x = "Тип задания", y = "Число посещений") + ggtitle("Доля посещений форума") + theme(plot.title = element_text(hjust = 0.5))
+
+
+```
+
+#### Тест Манна-Уитни
+
+```{r}
+wilcox.test(rate ~ course_item_type_desc, tw)
+tw %>% ungroup() %>% wilcox_effsize(rate ~ course_item_type_desc)
+```
+

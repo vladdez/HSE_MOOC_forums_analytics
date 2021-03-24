@@ -1,0 +1,182 @@
+---
+title: "Длительность прохождения и посещение форума"
+output:
+  html_document:
+    code_download: yes
+    fontsize: 8pt
+    highlight: textmate
+    number_sections: no
+    theme: flatly
+    toc: yes
+    toc_float:
+      collapsed: no
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+library(dplyr)
+library(data.table)
+library(lme4)
+library(ggplot2)
+library(pscl) # for odTest
+library(arm)
+library(sjPlot)
+library(rstatix)
+
+remove_outliers <- function(x, na.rm = TRUE, ...) {
+  qnt <- quantile(x, probs=c(.25, .75), na.rm = na.rm, ...)
+  H <- 1.5 * IQR(x, na.rm = na.rm)
+  y <- x
+  y[x < (qnt[1] - H)] <- NA
+  y[x > (qnt[2] + H)] <- NA
+  y
+}
+
+```
+
+```{r, include=FALSE}
+wd <- getwd()
+students <- fread("../data/students.csv") %>% filter(duration < 400)
+
+students$vis_b <-factor(students$vis_b)
+
+```
+
+
+## 0. Об отчете
+
+### Исследовательские вопросы
+
+  1. Как длительность прохождения курса влияет на число посещенных страниц форума?
+
+
+## Описание переменных
+
+  - ***vis_p*** - индивидуальное посещение форума;
+  - ***duration*** - индивидуальная длительность прохождения курса в днях;
+
+## 1.  Дисперсия длительности
+
+```{r}
+students %>% summarise(mean = mean(duration), variance = var(duration))
+```
+```{r}
+hist(students$duration)
+```
+
+```{r}
+m0 <- glmer.nb(duration ~ 1 + (1|course_id), students)
+summary(m0)
+
+```
+
+```{r, include=FALSE}
+sd <- as.numeric(data.frame(VarCorr(m0))[5])
+coef <- display(m0)$coef
+c <- c(round(exp(coef - sd), digits = 2), round(exp(coef + sd), digits = 2))
+
+```
+
+```{r, echo=FALSE}
+
+cat(sprintf("Средняя длительность прохождения курса - %.2f (доверительный интервал %.2f-%.2f, SD = %.2f) дней.", exp(coef), c[1] , c[2],  exp(sd)))
+```
+
+## 2. Длительность и тип курса 
+
+
+```{r}
+wt1 <- wilcox.test(duration ~ is_prog_b, students, exact=FALSE)
+w1 <- students %>% wilcox_effsize(duration ~ is_prog_b)
+wt1
+w1
+```
+
+
+```{r}
+m1 <- glmer.nb(duration ~ is_prog_b + (1|course_id),
+            students)
+summary(m1)
+
+
+```
+
+## 3. Длительность прохождения курса и посещение форума
+
+## 3.2. traditional method
+
+Выбор статистических инструментов:
+
+  1. Переменная vis_p счетная, для таких переменных используется пуассоновское или отрицательно-биномиальное распределение.
+  2. how extra-Poisson variation (i.e., overdispersion), odTest(), поможет нам выбрать необходимое распределение. Оно проверяет верно ли необходимое условие для использование Пуассоновской регрессии - равенство условного среднего и условного распределения. Если значение p-value меньше 0.05, то гипотеза о чрезмерной дисперсии не может быть отброшена. В таком случае следует применять отрицательно-биномиальное распределение.
+
+
+```{r}
+m1 <-  glm.nb(duration ~ vis_p, students)
+od <- odTest(m1)
+
+```
+
+```{r}
+m1 <- glm.nb(duration ~ vis_p + is_prog_b, students)
+summary(m1)
+```
+
+```{r}
+tab_model(m1)
+```
+
+
+```{r , echo=FALSE}
+cat(sprintf("Увеличение количества посещенных страниц форума на 1 страницу удлиняет ожидаемое прохождение курса на %.3f дней.\n", exp(m1$coefficients[2])))
+cat(sprintf("Человек, который совершил 1 посещение форума закончил курс за %.2f дней.\n", (exp(m1$coefficients[1] + m1$coefficients[2]* 1))))
+cat(sprintf("Человек, который совершил 16 посещений форума закончил курс за %.2f дней.\n", (exp(m1$coefficients[1] + m1$coefficients[2]* 16))))
+cat(sprintf("Человек, который совершил 500 посещений форума закончил курс за %.2f дней.\n ", (exp(m1$coefficients[1] + m1$coefficients[2]* 500))))
+
+```
+
+
+```{r}
+students %>% 
+  ggplot(aes(y = duration, x = vis_p)) + geom_point() +  geom_smooth(method="glm.nb", color = "red") + ggtitle("Влияние посещения форума на длительность прохождения курса") + labs(x="Посещенные страницы", y = "Дни") +  theme(plot.title = element_text(hjust = 0.5))
+```
+
+## 3.2. binning method
+
+## Means
+
+```{r}
+students_short <- students %>% group_by(course_slug) %>% summarise(vis_mean = round(mean(vis_p, na.rm =TRUE)), duration_mean = round(mean(duration, na.rm =TRUE), digits = 2), is_prog_b = is_prog_b[1])
+```
+
+```{r}
+m2 <- lm(duration_mean ~ vis_mean, students_short)
+summary(m2)
+```
+
+```{r}
+students_short  %>%
+  ggplot(aes(y = duration_mean, x = vis_mean)) + geom_point() +  geom_smooth(method="lm",color = "red") + ggtitle("Влияние посещения форума на длительность прохождения курса") + labs(x="Среднее посещения", y = "Средняя длительность") +  theme(plot.title = element_text(hjust = 0.5)) 
+```
+```{r}
+res <- resid(m2)
+plot(fitted(m2), res)
+abline(0,0)
+qqnorm(res)
+qqline(res)
+```
+
+```{r}
+m2 <- lm(duration_mean ~ remove_outliers(vis_mean), students_short)
+summary(m2)
+```
+```{r}
+res <- resid(m2)
+plot(fitted(m2), res)
+abline(0,0)
+qqnorm(res)
+qqline(res)
+```
+
+

@@ -1,0 +1,447 @@
+---
+title: "Как тип курса влияет на посещение форума"
+output:
+  html_document:
+    code_download: yes
+    fontsize: 8pt
+    highlight: textmate
+    number_sections: no
+    theme: flatly
+    toc: yes
+    toc_float:
+      collapsed: no
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+library(dplyr)
+library(data.table)
+library(readr)
+library(lme4)
+library(broom)
+library(ggplot2)
+library(tidyr)
+library(arm) # for display()
+library(blmeco) # for odTest()
+library(ggpubr)
+library(rstatix)
+
+remove_outliers <- function(x, na.rm = TRUE, ...) {
+  qnt <- quantile(x, probs=c(.25, .75), na.rm = na.rm, ...)
+  H <- 1.5 * IQR(x, na.rm = na.rm)
+  y <- x
+  y[x < (qnt[1] - H)] <- NA
+  y[x > (qnt[2] + H)] <- NA
+  y
+}
+
+```
+
+```{r, include=FALSE}
+wd <- getwd()
+students <- fread("../data/students.csv") %>% group_by(course_id) %>%
+  mutate(vis_p = remove_outliers(vis_p))  
+students$vis_b <-factor(students$vis_b)
+students$spec_b <-factor(students$spec_b)
+
+short <- students %>% distinct(course_slug, spec_b, field, is_prog_b)
+table(short$is_prog_b)
+
+courses <- fread("../data/courses.csv")%>%
+  mutate(passing_rate = passing_rate * 100, student_vis_rate = round(vis_learner_b/student_n, digits = 2), student_vis_mean = round(student_vis_mean, digits = 2))
+
+```
+
+
+## 1. Об отчете
+
+### Исследовательские вопросы
+
+  1. Какая доля студентов посещает форум?
+  2. Сколько страниц форума в среднем посещают студенты?
+  3. Как отличается среднее посещение форума на курсах из специализаций и не из специализаций?
+  4. Как отличается среднее посещение форума на курсах с заданиями по программированию и без них?
+
+### Описание баз данных и ее переменных
+
+- Все рассматриваемые студенты закончили курс.
+- Анализируем 60 курсов.
+- 39 индивидуальных курса и 21 курсов из специализаций.
+- 45 курсов с заданиями по программированию и 15 курсов без них.
+
+### Переменные
+
+- **Метрики форума**
+  - ***student_vis_mean*** - среднее посещение форума студентами на курсе;
+  - ***student_vis_rate*** - число студентов посетивших форум / число студентов на курсе;
+  - ***vis_b*** - посещал форум или нет;
+  - ***vis_p*** - количество посещенных страниц форума;
+  
+- **Тип курса.**     
+  - ***spec_b*** - индивидуальный курс или курс из специализации;
+  - ***is_prog*** - есть задания по программированию в курсе или нет;
+
+- **Тип задания** - бинарные переменные; сообщают есть ли такой тип задания на курсе;
+  - ***is_prog*** - есть ли задание по программированию;
+  - ***is_math*** - есть ли задание по математике;
+  - ***is_peer*** - есть ли пир-ревью;
+ 
+### Как создавались бинарные переменные типов заданий
+ - К сожалению, не всегда удается автоматически определить какие на курсе задания, а потому приходится использовать разнообразные признаки для их кодирования.
+  - ***is_prog***
+    - есть ли в таблице course_items.csv задания со словом "programming";
+    - есть ли в таблице assessment_questions.csv вопросы с типом 14 (codeExpression);
+  - ***is_math***
+    - есть ли задания в таблице assessment_math_expression_questions.csv;
+    - есть ли в таблице peer_assignment_submission_schema_parts.csv слова "math","calculate", "Рассчитайте";
+  - ***is_peer***
+    - есть ли в таблице 'course_items.csv' задание с типом 104 (peer-review);
+
+### Описание данных
+
+```{r}
+min(courses$student_n)
+max(courses$student_n)
+```
+```{r}
+table(courses$is_prog_b)
+table(courses$spec_b)
+```
+
+
+## 2. Сколько студентов посещает форум и сколько страниц они посещают
+
+### 2.1 Вероятность посещения форума студентом
+
+```{r}
+m00 <- glm(factor(vis_b) ~ 1,
+            family = binomial,
+            students)
+```
+
+```{r, echo=FALSE}
+m0 <- glmer(factor(vis_b) ~ 1 + (1|course_id),
+            family = binomial,
+            students)
+summary(m0)
+```
+
+```{r, include=FALSE}
+a1 <- AIC(m0)
+sd <- as.numeric(data.frame(VarCorr(m0))[5])
+m0 <- display(m0)
+variance1 <- sd ^2
+coef = m0$coef # intercept of m0
+
+```
+
+Выясним опорную переменную:
+
+```{r}
+contrasts(students$vis_b)
+```
+
+Результаты:
+
+
+```{r, echo=FALSE}
+
+t <- table(students$vis_b)
+v1 <- round((t[2]/(t[1] + t[2])), digits = 2)
+v2 <- round(invlogit(m00$coefficients[1]), digits = 2)
+c <- c(round(invlogit(coef - sd), digits = 2), round(invlogit(coef + sd), digits = 2))
+
+cat(sprintf("\n1) Вероятность посещения форума на среднем курсе равна %d%% (через формулу вероятности) и (через обратный логит интерсепта модели m0) %d%%.\n", v1 *100, v2 *100))
+cat(sprintf("\n2) Вероятность посещения форума на среднем курсе с учетом стандратного отклонения  равна %.f%% (через обратный логит интерсепта модели m1).\n", round(invlogit(coef), digits = 2) *100))
+cat(sprintf("Эта вероятность будет колебаться между: %d%% и %d%%.\n", c[1] *100, c[2] *100))
+cat(sprintf("Необъясненная дисперсия (variance): %f.\n", variance1))
+```
+
+### 2.2 Количество страниц в среднем посещенных студентом
+
+
+Выбор статистических инструментов:
+
+  1. the square root of the scale parameter, according to recommendations by D. Bates, if its value is between 0.75 and 1.4, there may not be an overdispersion problem.
+  
+```{r}
+
+m0 <- glmer(vis_p ~ 1 + (1|course_id), family='poisson',
+            students)
+od <- dispersion_glmer(m0)
+od
+```
+
+```{r}
+m0 <- glmer.nb(vis_p ~ 1 + (1|course_id),
+            students)
+od <- dispersion_glmer(m0)
+od
+summary(m0)
+
+```
+
+```{r, include=FALSE}
+a2 <- AIC(m0)
+sd <- as.numeric(data.frame(VarCorr(m0))[5])
+m0 <- display(m0)
+variance2 <- sd ^2
+coef = m0$coef
+c <- c(round(exp(coef - sd), digits = 0), round(exp(coef + sd), digits = 0))
+```
+
+```{r}
+hist(students$vis_p)
+```
+
+
+```{r , echo=FALSE}
+cat(sprintf("\nМедианное посещение страниц форума равно %d со стандартным отклонением %d\n", round(median(students$vis_p, na.rm = TRUE), digit = 0), round(sd(students$vis_p, na.rm = TRUE), digit = 0)))
+
+cat(sprintf("\nCреднее количество страниц, которые посещают студенты на форуме среднего курса: %d\n", round(exp(coef), digit = 0)))
+cat(sprintf("Это количество колеблется между: %d и %d страницами\n", c[1], c[2]))
+cat(sprintf("Необъясненная дисперсия (variance): %f\n", variance2))
+```
+
+## 3. Как на посещение форума влияет вхождение курса в специализацию
+
+### 3.1 Влияние специализации на посещение форума студентом
+
+
+```{r}
+#contrasts(students$spec_b)
+m0 <- glmer(vis_b ~ spec_b +(1|course_id),
+            family = binomial,
+            students)
+summary(m0)
+
+```
+
+
+```{r, include=FALSE}
+a3 <- AIC(m0)
+sd <- as.numeric(data.frame(VarCorr(m0))[5])
+m0 <- display(m0)
+variance3 <- sd ^2
+coef = m0$coef
+```
+
+
+```{r , echo=FALSE}
+
+c <- c(round(invlogit(coef - sd), digits = 2), round(invlogit(coef + sd), digits = 2))
+cat(sprintf("Незначимо!\n"))
+#cat(sprintf("\nВероятность, посещения форума на индивидуальном курсе: %.f%%\n", round(invlogit(coef[1]), digit = 3)*100))
+#cat(sprintf("Вероятность, посещения форума на курсе специализации: %.f%%\n", round(invlogit(coef[1] + coef[2]), digits = 3)*100))
+#cat(sprintf("AIC модели без предиктора - %.2f и AIC с предиктором - %.2f\n", a1, a3))
+#cat(sprintf("Необъясненная дисперсия модели без предиктора - %.3f и необъясненная дисперсия с предиктором - %.3f\n", variance1, variance3))
+
+
+```
+
+### 3.2 Влияние специализации на количество страниц посещенных студентом
+
+
+```{r}
+
+m0 <- glmer.nb(vis_p ~ spec_b +(1|course_id),
+            students)
+summary(m0)
+```
+
+
+```{r, include=FALSE}
+a4 <- AIC(m0)
+sd <- as.numeric(data.frame(VarCorr(m0))[5])
+m0 <- display(m0)
+variance4 <- sd ^2
+coef = m0$coef
+```
+
+```{r , echo=FALSE}
+cat(sprintf("Незначимо!\n"))
+#cat(sprintf("\nСреднее количество страниц на форуме, которые студенты посещают на индивидуальном курсе: %.2f\n", round(exp(coef[1]), digit = 2)))
+#cat(sprintf("Среднее количество страниц на форуме, которые студенты посещают на курсе из специализации: %.2f \n", round(exp(coef[1] +coef[2]), digit = 2)))
+#cat(sprintf("Ожидаемое значение посещенных страниц форума для курса из специализации выше в %.2f раз, чем для индивидуального курса.\n", round(exp(coef[2]), digit = 3)))
+#cat(sprintf("AIC модели без предиктора - %.2f и AIC с предиктором - %.2f\n", a2, a4))
+#cat(sprintf("Необъясненная дисперсия модели без предиктора - %.2f и необъясненная дисперсия с предиктором - %.2f\n", variance2, variance4))
+```
+## 4. Как на посещение форума влияет наличие на курсе заданий по программированию
+
+### 4.1 Влияние программирования на посещение форума студентом
+
+```{r}
+m0 <- glmer(factor(vis_b) ~ is_prog_b + (1|course_id), family = "binomial",
+            students)
+summary(m0)
+```
+
+```{r, include=FALSE}
+a3 <- AIC(m0)
+sd <- as.numeric(data.frame(VarCorr(m0))[5])
+m0 <- display(m0)
+variance3 <- sd ^2
+coef = m0$coef
+```
+
+
+Результаты:
+
+```{r , echo=FALSE}
+
+
+cat(sprintf("\nВероятность, посещения форума на курсе без программирования: %.f%%\n", round(invlogit(coef[1]), digit = 3)*100))
+cat(sprintf("Вероятность, посещения форума на курсе с программированием: %.f%%\n", round(invlogit(coef[1] + coef[2]), digits = 3)*100))
+```
+
+### 4.2 Влияние программирования на количество страниц посещенных студентом
+
+
+```{r}
+m0 <- glmer.nb(vis_p ~ is_prog_b + (1|course_id),
+            students)
+summary(m0)
+```
+
+```{r, include=FALSE}
+a5 <- AIC(m0)
+sd <- as.numeric(data.frame(VarCorr(m0))[5])
+m0 <- display(m0)
+variance5 <- sd ^2
+coef = m0$coef
+```
+
+
+Результаты:
+
+
+```{r , echo=FALSE}
+
+cat(sprintf("\nОжидаемое количество страниц на форуме, которые студенты посещают на индивидуальном курсе: %.2f.\n", round(exp(coef[1]), digit = 2)))
+cat(sprintf("Ожидаемое количество страниц на форуме, которые студенты посещают на курсе с программированием: %.2f.\n", round(exp(coef[1] +coef[2]), digit = 2)))
+cat(sprintf("Ожидаемое количество страниц на форуме на курсах с программированию выше количества страниц на курсах без программирования в %.2f раз.\n", round(exp(coef[2]), digit = 2)))
+cat(sprintf("AIC модели без предиктора - %.2f и AIC с предиктором - %.2f\n", a2, a5))
+cat(sprintf("Необъясненная дисперсия модели без предиктора - %.2f и необъясненная дисперсия с предиктором - %.2f\n", variance2, variance5))
+```
+
+#### Визуализация
+
+```{r}
+students %>%
+  ggplot(aes(x = factor(is_prog_b), y = vis_p)) + geom_point() + geom_boxplot() + ggtitle("Влияние типа курса на количество посещенных страниц") + labs(x="Тип курса", y = "Количество посещенных страниц форума") +  theme(plot.title = element_text(hjust = 0.5))
+```
+
+## 5. Как на среднее посещение форума на курсе влияет тип заданий на курсе
+### 5.1 Описательная статистика
+
+- Чтобы выяснить взаимоотношением между средним посещением и типом курса мы будем использовать **Mann-Whitney U test** потому что:
+  - Переменная ***student_vis_mean***:
+    - непрерывная;
+    - скошена влево, а значит нарушена предпосылка нормальности;
+    - тест Шапиро также показывает, что распределение этой переменной значимо отличается от нормального;
+  - Переменные  ***is_prog_b***, ***is_math***, ***is_peer***
+    - бинарные;
+    - значения этих переменных независимы;
+    - их распределения должны походить друг на друга.
+- Mann-Whitney U test - это аналог t-test для ненормально распределенной зависимой переменной.
+
+
+```{r, warning=FALSE, message=FALSE}
+gghistogram(courses, x = "student_vis_mean", y = "..density..",
+            fill = "steelblue",bins = 30, add_density = TRUE)
+shapiro.test(courses$student_vis_mean)
+
+courses %>%
+  ggplot(aes(x = student_vis_mean)) + geom_histogram() + facet_wrap(~is_peer_b, labeller = labeller(yes = "1", no = "0")) + labs(x = "Посещение форума в среднем по курсу", y = "Количество курсов с таким посещением")
+
+```
+
+```{r}
+hist(courses$student_vis_mean)
+hist(courses$student_vis_rate)
+```
+
+
+### 5.2 Mann-Whitney U tests в виде расчетов и с силой эффекта
+#### Во всех трех случаях есть значимая разница в среднем посещении форума между курсами с разными типами заданий
+
+```{r}
+
+wt1 <- wilcox.test(student_vis_mean ~ is_prog_b, courses)
+w1 <- courses %>% wilcox_effsize(student_vis_mean ~ is_prog_b)
+wt2 <- wilcox.test(student_vis_mean ~ is_math_b, courses)
+w2 <- courses %>% wilcox_effsize(student_vis_mean ~ is_math_b)
+wt3 <- wilcox.test(student_vis_mean ~ is_peer_b, courses)
+w3 <- courses %>% wilcox_effsize(student_vis_mean ~ is_peer_b)
+wt4 <- wilcox.test(student_vis_mean ~ spec_b, courses)
+w4 <- courses %>% wilcox_effsize(student_vis_mean ~ spec_b)
+```
+
+```{r, echo=FALSE}
+wt1
+w1
+wt2
+w2$effsize
+wt3
+w3$effsize
+wt4
+w4$effsize
+```
+
+### 5.3 Mann-Whitney U tests в виде графиков
+#### На графиках указаны статистики теста и значимость различий между курсами с разными типами заданий
+
+```{r}
+
+stat.test <- courses %>%
+  wilcox_test(student_vis_mean ~ is_prog_b) %>%
+  add_significance()
+bxp <- ggboxplot(
+  courses, x = "is_prog_b", y = "student_vis_mean",
+  ylab = "Посещение форума в среднем по курсу", xlab = "Курс с программированием", add = "jitter") +
+scale_x_discrete(labels=c("Нет","Да"))
+stat.test <- stat.test %>% add_xy_position(x = "group")
+bxp +
+  stat_pvalue_manual(stat.test, tip.length = 0) +
+  labs(subtitle = get_test_label(stat.test, detailed = TRUE))
+ 
+
+stat.test <- courses %>%
+  wilcox_test(student_vis_mean ~ is_math_b) %>%
+  add_significance()
+bxp <- ggboxplot(
+  courses, x = "is_math_b", y = "student_vis_mean",
+  ylab = "Посещение форума в среднем по курсу", xlab = "Курс с математическими рассчетами", add = "jitter") +
+scale_x_discrete(labels=c("Нет","Да"))
+stat.test <- stat.test %>% add_xy_position(x = "group")
+bxp +
+  stat_pvalue_manual(stat.test, tip.length = 0) +
+  labs(subtitle = get_test_label(stat.test, detailed = TRUE))
+ 
+
+stat.test <- courses %>%
+  wilcox_test(student_vis_mean ~ is_peer_b) %>%
+  add_significance()
+bxp <- ggboxplot(
+  courses, x = "is_peer_b", y = "student_vis_mean",
+  ylab = "Посещение форума в среднем по курсу", xlab = "Курс с взаимный оцениванием", add = "jitter") +
+scale_x_discrete(labels=c("Нет","Да"))
+stat.test <- stat.test %>% add_xy_position(x = "group")
+bxp +
+  stat_pvalue_manual(stat.test, tip.length = 0) +
+  labs(subtitle = get_test_label(stat.test, detailed = TRUE))
+ 
+stat.test <- courses %>%
+  wilcox_test(student_vis_mean ~ spec_b) %>%
+  add_significance()
+bxp <- ggboxplot(
+  courses, x = "spec_b", y = "student_vis_mean",
+  ylab = "Посещение форума в среднем по курсу", xlab = "Курс входит в специализацию", add = "jitter") +
+scale_x_discrete(labels=c("Нет","Да"))
+stat.test <- stat.test %>% add_xy_position(x = "group")
+bxp +
+  stat_pvalue_manual(stat.test, tip.length = 0) +
+  labs(subtitle = get_test_label(stat.test, detailed = TRUE))
+```
+
