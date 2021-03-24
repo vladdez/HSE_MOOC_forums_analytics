@@ -1,0 +1,325 @@
+---
+title: "Модель Раша"
+output:
+  html_document:
+    code_download: yes
+    fontsize: 8pt
+    highlight: textmate
+    number_sections: no
+    theme: flatly
+    toc: yes
+    toc_float:
+      collapsed: no
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+library(dplyr)
+library(data.table)
+library(lme4)
+library(ggplot2)
+library(tidyr)
+library(pscl)
+library(arm)
+library(broom)
+library(nlme)
+library(sjPlot)
+
+remove_outliers <- function(x, na.rm = TRUE, ...) {
+  qnt <- quantile(x, probs=c(.25, .75), na.rm = na.rm, ...)
+  H <- 1.5 * IQR(x, na.rm = na.rm)
+  y <- x
+  y[x < (qnt[1] - H)] <- NA
+  y[x > (qnt[2] + H)] <- NA
+  y
+}
+
+```
+
+```{r}
+wd <- getwd()
+assignments <- fread("unzip -cq ../data/assignments.zip")  %>% group_by(course_name) %>%
+ mutate(course_item_type_desc = factor(course_item_type_desc), vis_before_attempt_tw_b = ifelse(vis_before_attempt_tw==0, 0, 1), vis_tw_b = ifelse(vis_tw==0, 0, 1), vis_before_attempt_tw_b = factor(vis_before_attempt_tw_b)) 
+
+```
+
+
+## 1. Об отчете
+
+### Исследовательские вопросы
+
+  1. Как связаны вероятность выполнения задания и посещение форума во время выполнения задания?
+  2. Как связаны число попыток и посещение форума во время выполнения задания?
+
+## Описание базы данных
+
+  - **assignments** - база данных, с данными на уровне студентов
+  
+## Описание переменных
+ 
+Важные: 
+
+  - **attempts** - Попытки за задание. Сколько попыток этот студент сделал при решении этого задания;
+  - **vis_tw** - Посещения форума. Сколько раз этот студент посещал форум во время прохождения этого задания. Важно: считается посещение форума за все время пока студент взаимодействует с заданием;
+  - **vis_before_attempt_tw** - Предварительное посещение форума - количество посещенных страниц форума с момента, когда студент начал решать задание и до момента когда студент совершил первую попытку;
+  - **vis_before_attempt_tw_b** - Посещал студент форум или нет с момента, когда начал решать задание и до момента когда совершил первую попытку. В анализе используется эта переменная потому что с предыдущей модель не сходится;
+  - **assessment_status** - Статус выполнения задания: 1 - удалось решить, 0 - не удалось решить.
+  - **first_attempt** - Статус выполнения задания после первой попытки: 1 - удалось решить с первой попытки, 0 - не удалось решить с первой попытки.
+
+Менее важные:
+
+  - **assessment_id** - токен задания;
+  - **hse_user_id** - токен студента;
+  - **course_item_type_desc** - тип задания;
+
+
+
+#### О модели Раша
+
+Модель Раша - популярная психометрическая модель, предполагающая нелинейную связь между оценками студента за задание и его знаниями.
+Мы будем знания определять с помощью попыток за задания и посещений форума.
+
+#### Распределение переменной assessment_status
+
+```{r}
+table(assignments$assessment_status)
+table(assignments$first_attempt)
+table(assignments$course_item_type_desc, assignments$vis_tw_b)
+table(assignments$course_item_type_desc, assignments$vis_before_attempt_tw_b)
+```
+```{r}
+assignments %>%  ggplot(aes(x = vis_before_attempt_tw_b)) + geom_histogram(stat="count")+ facet_wrap(~course_item_type_desc)
+```
+
+```{r}
+assignments %>%  ggplot(aes(x = course_item_type_desc, y = vis_before_attempt_tw)) + geom_point()
+```
+
+```{r}
+assignments %>% group_by(x = course_item_type_desc) %>% summarize(mean_vis = mean(vis_before_attempt_tw)) 
+```
+
+```{r}
+assignments %>% group_by(x = course_item_type_desc, vis_before_attempt_tw_b) %>% summarize(probability_to_pass = sum(first_attempt)/ n()) 
+```
+
+#### Распределение переменной attempts
+
+```{r}
+summary(assignments$attempts)
+summary(assignments$vis_before_attempt_tw)
+```
+
+
+
+## 2. Вероятность выполнить задание с первой попытки
+
+#### Дисперсия вероятности выполнить задание с первой попытки по студентам и заданиям
+
+```{r}
+mr00 <- glm(data = assignments, factor(first_attempt) ~ 1, family = "binomial")
+summary(mr00)
+```
+
+```{r}
+mr0 <- glmer(data = assignments, factor(first_attempt) ~ 1 + (1|hse_user_id) + (1|course_item_name), family = "binomial")
+summary(mr0)
+```
+
+```{r, include=FALSE}
+sd_proficieny <- data.frame(VarCorr(mr0))[5][1, 1]
+sd_difficulty <- data.frame(VarCorr(mr0))[5][2, 1]
+coef <- display(mr0)$coef # intercept of m0
+
+```
+
+```{r, echo=FALSE}
+c_proficieny <- c(round(invlogit(coef - sd_proficieny), digits = 2), round(invlogit(coef + sd_proficieny), digits = 2))
+c_difficulty <- c(round(invlogit(coef - sd_proficieny- sd_difficulty), digits = 2), round(invlogit(coef - sd_proficieny + sd_difficulty), digits = 2))
+
+cat(sprintf("Вероятность  с первой попытки выолнить среднее задание средним студентом - %.f%%.\n", round(invlogit(coef), digits = 2) *100))
+cat(sprintf("Эта вероятность будет колебаться между %d%% и %d%%  с одним стандартным отклонением квалификации студента ниже и выше.\n", c_proficieny[1] *100, c_proficieny[2] *100))
+cat(sprintf("Эта вероятность будет колебаться между %d%% и %d%%  с одним стандартным отклонением сложности задания ниже и выше.\n", c_difficulty[1] *100, c_difficulty[2] *100))
+```
+
+```{r}
+ll1 <- logLik(mr00)*-2
+ll2 <- logLik(mr0)*-2
+chi <- ll1[1] - ll2[1]
+chi
+df <- 3-1
+df
+# if results are cheater than chi than they are significant
+qchisq(p=.0001, df=df, lower.tail=FALSE)
+```
+
+## 3. Влияние предварительного посещения форума на вероятность решить задание с первой попытки
+
+```{r}
+mr1 <- glmer(data = assignments, factor(first_attempt) ~ 1 + vis_before_attempt_tw_b  + (1|hse_user_id) + (1|course_item_name), family = "binomial")
+summary(mr1)
+mrr1 <- summary(mr1)
+```
+
+```{r}
+tab_model(mr1)
+display(mr1)
+```
+
+
+```{r, echo=FALSE}
+cat(sprintf("Вероятность, что студент выполнит задание с первой попытки, если до первой попытки он не посещал форум, равна %.2f.\n", invlogit(mrr1$coefficients[1])))
+cat(sprintf("Вероятность, что студент выполнит задание с первой попытки, если студент посетил форум хотя бы 1 раз до совершения попытки - %.2f\n\n", invlogit(mrr1$coefficients[1] + mrr1$coefficients[2])))
+```
+
+
+####  Визуализация
+
+```{r, warning=FALSE}
+assignments  %>%   ggplot(aes(x = vis_before_attempt_tw, y = first_attempt)) +
+  geom_point(aes(color = as.factor(first_attempt)), shape = 1)   +  
+# построит регрессионную линию, сигмоиду
+  geom_smooth(method = "glm", color = "red", method.args=list(family="binomial")) +   
+# напечатает легенду, название графика и осей  
+  ggtitle("Вероятность сдать тест с первой попытки и\nпосещение форума до первой попытки") +
+  scale_color_discrete(labels=c("Не сдал", "Сдал")) +
+  labs(x = "Количество посещенных страниц до первой попытки", y = "Вероятность сдать тест с первой попытки", color = "Первая попытка") +
+# задает цветовую тему графика
+  theme_bw() +  
+# выравнивает название по центру
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+```{r}
+anova(mr0, mr1)
+```
+
+## 4. Влияние типа задания на вероятность решить задание с первой попытки
+
+```{r}
+mr1 <- glmer(data = assignments, factor(first_attempt) ~ 1 + course_item_type_desc  + (1|hse_user_id) + (1|course_item_name), family = "binomial")
+summary(mr1)
+mrr1 <- summary(mr1)
+```
+
+```{r}
+tab_model(mr1)
+display(mr1)
+```
+
+
+```{r, echo=FALSE}
+cat(sprintf("Вероятность, что студент выполнит задание с первой попытки, если это курс не по программированию равна %.2f.\n", invlogit(mrr1$coefficients[1])))
+cat(sprintf("Вероятность, что студент выполнит задание с первой попытки, если это курс по программированию - %.2f\n\n", invlogit(mrr1$coefficients[1] + mrr1$coefficients[2])))
+```
+
+
+
+## 5. Влияние предварительного посещения форума и типа курса на вероятность решить задание с первой попытки с 2 случ эффектами 
+### course_item_name
+
+```{r}
+mr3 <- glmer(data = assignments, factor(first_attempt) ~ 1 + vis_before_attempt_tw_b*course_item_type_desc + (1|hse_user_id) + (1|course_item_name), family = "binomial")
+summary(mr3)
+mrr3 <- summary(mr3)
+```
+
+```{r, echo=FALSE}
+cat(sprintf("Вероятность, что студент выполнит задание с первой попытки, если во время взаимодействия с заданием он не посещал форум и это задание по программированию, равна %.4f.\n", invlogit(mrr3$coefficients[1])))
+cat(sprintf("Вероятность, что студент выполнит задание с первой попытки, если во время взаимодействия с заданием он посещал форум и это задание по программированию, равна %.4f.\n", invlogit((mrr3$coefficients[1] + mrr3$coefficients[2]))))
+cat(sprintf("Вероятность, что студент выполнит задание с первой попытки,  если во время взаимодействия с заданием он не посещал форум и это тест, равна %.4f.\n", invlogit((mrr3$coefficients[1] + mrr3$coefficients[3]))))
+cat(sprintf("Вероятность, что студент выполнит задание с первой попытки,  если во время взаимодействия с заданием он посещал форум и это тест, равна %.4f.\n", invlogit((mrr3$coefficients[1] + mrr3$coefficients[4]))))
+```
+
+### course_name
+
+```{r}
+mr3 <- glmer(data = assignments, factor(first_attempt) ~ 1 + vis_before_attempt_tw_b*course_item_type_desc + (1|hse_user_id) + (1|course_name), family = "binomial")
+summary(mr3)
+mrr3 <- summary(mr3)
+```
+
+```{r, echo=FALSE}
+cat(sprintf("Вероятность, что студент выполнит задание с первой попытки, если во время взаимодействия с заданием он не посещал форум и это задание по программированию, равна %.4f.\n", invlogit(mrr3$coefficients[1])))
+cat(sprintf("Вероятность, что студент выполнит задание с первой попытки, если во время взаимодействия с заданием он посещал форум и это задание по программированию, равна %.4f.\n", invlogit((mrr3$coefficients[1] + mrr3$coefficients[2]))))
+cat(sprintf("Вероятность, что студент выполнит задание с первой попытки,  если во время взаимодействия с заданием он не посещал форум и это тест, равна %.4f.\n", invlogit((mrr3$coefficients[1] + mrr3$coefficients[3]))))
+cat(sprintf("Вероятность, что студент выполнит задание с первой попытки,  если во время взаимодействия с заданием он посещал форум и это тест, равна %.4f.\n", invlogit((mrr3$coefficients[1] + mrr3$coefficients[4]))))
+```
+
+#```{r}
+#tab_model(mr3)
+#display(mr3)
+#```
+
+
+```{r, warning=FALSE}
+assignments  %>% filter(vis_before_attempt_tw < 1000) %>%   ggplot(aes(x = vis_before_attempt_tw, y = first_attempt, color = course_item_type_desc)) +
+  geom_point()   +  
+# построит регрессионную линию, сигмоиду
+  geom_smooth(method = "glm", method.args=list(family="binomial")) +   
+# напечатает легенду, название графика и осей  
+  ggtitle("Вероятность сдать тест с первой попытки и\nпосещение форума до первой попытки") +
+  labs(x = "Количество посещенных страниц до первой попытки", y = "Вероятность сдать тест с первой попытки", color = "Первая попытка") +
+# задает цветовую тему графика
+  theme_bw() +  
+# выравнивает название по центру
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+## 6. Без группировки
+
+```{r}
+mr4 <- glm(data = assignments, factor(first_attempt) ~ 1 + vis_before_attempt_tw_b*course_item_type_desc, family = "binomial")
+summary(mr4)
+mrr4 <- summary(mr4)
+```
+```{r, echo=FALSE}
+cat(sprintf("Вероятность, что студент выполнит задание с первой попытки, если во время взаимодействия с заданием он не посещал форум и это задание по программированию, равна %.4f.\n", invlogit(mrr4$coefficients[1])))
+cat(sprintf("Вероятность, что студент выполнит задание с первой попытки, если во время взаимодействия с заданием он посещал форум и это задание по программированию, равна %.4f.\n", invlogit((mrr4$coefficients[1] + mrr4$coefficients[2]))))
+cat(sprintf("Вероятность, что студент выполнит задание с первой попытки,  если во время взаимодействия с заданием он не посещал форум и это тест, равна %.4f.\n", invlogit((mrr4$coefficients[1] + mrr4$coefficients[3]))))
+cat(sprintf("Вероятность, что студент выполнит задание с первой попытки,  если во время взаимодействия с заданием он посещал форум и это тест, равна %.4f.\n", invlogit((mrr4$coefficients[1] + mrr4$coefficients[4]))))
+```
+```{r}
+assignments %>% group_by(x = course_item_type_desc, vis_before_attempt_tw_b) %>% summarize(probability_to_pass = sum(first_attempt)/ n()) 
+```
+
+## 7. Есть ли эффект научения?
+
+Вероятность решить задание с первой попытки может повышаться из-за эффекта научения. Студент может с каждой новой неделей лучше решать задачи. Поэтому возьмем один курс и посмотрим по каждой неделе: есть ли разница между вероятностью решить задание с первой попытки если заходил на форум или не заходил на форум (переменная **vis_before_attempt_tw_b**).
+
+
+```{r}
+
+course_branch_items <- fread("../data/vvedenie-mashinnoe-obuchenie/course_branch_items.csv") %>% dplyr::select(course_lesson_id, course_item_id, course_branch_item_name, is_graded)
+course_branch_modules <- fread("../data/vvedenie-mashinnoe-obuchenie/course_branch_modules.csv") %>% dplyr::select(course_module_id, course_branch_module_order, course_branch_module_name)
+course_branch_lessons <- fread("../data/vvedenie-mashinnoe-obuchenie/course_branch_lessons.csv") %>% dplyr::select(-course_branch_id)
+
+vmo <- left_join(course_branch_lessons, course_branch_items) %>% left_join(., course_branch_modules) 
+
+total <- assignments %>%  filter(course_name == "vvedenie-mashinnoe-obuchenie") %>% dplyr::select(course_item_id,  course_item_name, hse_user_id, vis_before_attempt_tw_b, first_attempt) %>%  left_join(., vmo, by="course_item_id") %>% mutate(first_attempt = recode(first_attempt, `1` = "pass", `0` = "fail"), vis_before_attempt_tw_b = recode(vis_before_attempt_tw_b, `1` = "visites", `0` = "not_visited"))
+
+
+```
+
+Я выбрал курс "Введение в машинное обучение и сравнил вероятность решить задание первой попытки у тех, кто предварительно заходил на форум или не заходил, ***отдельно для пяти недель***. 
+
+
+```{r}
+i = 1
+while (i < 6) {
+  a <- total %>% filter(course_branch_module_order == i) 
+  tab <- table(a$first_attempt, a$vis_before_attempt_tw_b)
+  chisq <- chisq.test(tab)
+  cat(sprintf("\nweek %d", i))
+  print(tab)
+  print(chisq)
+  i = i + 1 
+}
+
+```
+
+
+## Выводы
+
+ to be done 
