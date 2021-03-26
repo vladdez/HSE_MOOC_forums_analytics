@@ -1,0 +1,134 @@
+---
+title: "Описание данных"
+output:
+  html_document:
+    code_download: yes
+    fontsize: 8pt
+    highlight: textmate
+    number_sections: no
+    theme: flatly
+    toc: yes
+    toc_float:
+      collapsed: no
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+library(dplyr)
+library(data.table)
+library(lme4)
+library(ggplot2)
+library(parameters)
+library(rstatix)
+library(blmeco)
+library(arm) # for display()
+
+remove_outliers <- function(x, na.rm = TRUE, ...) {
+  qnt <- quantile(x, probs=c(.25, .75), na.rm = na.rm, ...)
+  H <- 1.5 * IQR(x, na.rm = na.rm)
+  y <- x
+  y[x < (qnt[1] - H)] <- NA
+  y[x > (qnt[2] + H)] <- NA
+  y
+}
+
+```
+
+
+
+```{r, include=FALSE}
+wd <- getwd()
+students <- fread("../data/students.csv") %>% group_by(course_id) %>%
+  mutate(vis_p = remove_outliers(vis_p))  
+students$vis_b <-factor(students$vis_b)
+students$spec_b <-factor(students$spec_b)
+
+assignments <- fread("unzip -cq ../data/assignments.zip")  %>% group_by(course_name)   %>% mutate(course_item_type_desc = factor(course_item_type_desc)) %>% ungroup()
+
+courses <- fread("../data/courses.csv")%>%
+  mutate(passing_rate = passing_rate * 100, student_vis_rate = round(vis_learner_b/student_n, digits = 2), student_vis_mean = round(student_vis_mean, digits = 2))
+
+```
+
+Number of students enrolled:
+
+```{r}
+sum(courses$enrolled)
+```
+
+Number of students passed the course:
+
+```{r}
+pass <- sum(courses$student_n)
+pass
+```
+
+Number of passed students on the least and the most popular courses
+
+```{r}
+min(courses$student_n)
+max(courses$student_n)
+```
+
+Number of programming assignments and quizzes:
+
+```{r}
+table(assignments$course_item_type_desc)
+```
+Number of posts on forum:
+
+```{r}
+sum(courses$q_learner)
+sum(students$q_n)
+sum(courses$ans_learner)
+sum(students$ans_n)
+```
+
+Number of students posted anything on forum:
+
+```{r}
+q <- students %>% filter(q_n != 0) %>% group_by(course_id, hse_user_id) %>% nrow()
+a <- students %>% filter(ans_n != 0) %>% group_by(course_id, hse_user_id) %>% nrow()
+t <- students %>% filter(ans_n != 0 || q_n != 0) %>% group_by(course_id, hse_user_id) %>% nrow()
+q
+a
+t
+```
+
+Rate of students posted anything on forum:
+
+```{r}
+round(q / pass, digits = 2)
+round(a / pass, digits = 2)
+round(t / pass, digits = 2)
+```
+Number of students visited a forum:
+
+```{r}
+v <- students %>% filter(vis_b != 0) %>% group_by(course_id, hse_user_id) %>% nrow()
+v
+```
+
+
+The proportion of students visited forum:
+
+```{r}
+round(v / pass, digits = 2)
+```
+```{r}
+round(v / pass, digits = 2) / round(t / pass, digits = 2) 
+```
+Number of courses with programming assignments and not:
+
+```{r}
+table(courses$is_prog_b)
+```
+
+Number of courses within specialization and not:
+
+```{r}
+table(courses$spec_b)
+```
+
+

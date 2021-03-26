@@ -101,10 +101,6 @@ courses <- fread("../data/courses.csv")%>%
 ### Описание данных
 
 ```{r}
-min(courses$student_n)
-max(courses$student_n)
-```
-```{r}
 table(courses$is_prog_b)
 table(courses$spec_b)
 ```
@@ -120,7 +116,7 @@ m00 <- glm(factor(vis_b) ~ 1,
             students)
 ```
 
-```{r, echo=FALSE}
+```{r}
 m0 <- glmer(factor(vis_b) ~ 1 + (1|course_id),
             family = binomial,
             students)
@@ -152,8 +148,8 @@ v1 <- round((t[2]/(t[1] + t[2])), digits = 2)
 v2 <- round(invlogit(m00$coefficients[1]), digits = 2)
 c <- c(round(invlogit(coef - sd), digits = 2), round(invlogit(coef + sd), digits = 2))
 
-cat(sprintf("\n1) Вероятность посещения форума на среднем курсе равна %d%% (через формулу вероятности) и (через обратный логит интерсепта модели m0) %d%%.\n", v1 *100, v2 *100))
-cat(sprintf("\n2) Вероятность посещения форума на среднем курсе с учетом стандратного отклонения  равна %.f%% (через обратный логит интерсепта модели m1).\n", round(invlogit(coef), digits = 2) *100))
+cat(sprintf("\n1) Вероятность посещения форума на среднем курсе равна %d%% (через формулу вероятности) и (через обратный логит интерсепта модели m00) %d%%.\n", v1 *100, v2 *100))
+cat(sprintf("\n2) Вероятность посещения форума на среднем курсе с учетом стандратного отклонения  равна %.f%% (через обратный логит интерсепта модели m0).\n", round(invlogit(coef), digits = 2) *100))
 cat(sprintf("Эта вероятность будет колебаться между: %d%% и %d%%.\n", c[1] *100, c[2] *100))
 cat(sprintf("Необъясненная дисперсия (variance): %f.\n", variance1))
 ```
@@ -163,12 +159,16 @@ cat(sprintf("Необъясненная дисперсия (variance): %f.\n", v
 
 Выбор статистических инструментов:
 
-  1. the square root of the scale parameter, according to recommendations by D. Bates, if its value is between 0.75 and 1.4, there may not be an overdispersion problem.
+  1. Проверяем вариацию моделей, чтобы выбрать подходящее распредление
+  2. The square root of the scale parameter, according to recommendations by D. Bates, if its value is between 0.75 and 1.4, there may not be an overdispersion problem.
   
 ```{r}
 
 m0 <- glmer(vis_p ~ 1 + (1|course_id), family='poisson',
             students)
+```
+
+```{r}
 od <- dispersion_glmer(m0)
 od
 ```
@@ -176,10 +176,18 @@ od
 ```{r}
 m0 <- glmer.nb(vis_p ~ 1 + (1|course_id),
             students)
+
+```
+
+Проверка вариации модели:
+
+```{r}
 od <- dispersion_glmer(m0)
 od
-summary(m0)
+```
 
+```{r}
+summary(m0) 
 ```
 
 ```{r, include=FALSE}
@@ -191,17 +199,16 @@ coef = m0$coef
 c <- c(round(exp(coef - sd), digits = 0), round(exp(coef + sd), digits = 0))
 ```
 
-```{r}
-hist(students$vis_p)
-```
-
 
 ```{r , echo=FALSE}
-cat(sprintf("\nМедианное посещение страниц форума равно %d со стандартным отклонением %d\n", round(median(students$vis_p, na.rm = TRUE), digit = 0), round(sd(students$vis_p, na.rm = TRUE), digit = 0)))
-
 cat(sprintf("\nCреднее количество страниц, которые посещают студенты на форуме среднего курса: %d\n", round(exp(coef), digit = 0)))
 cat(sprintf("Это количество колеблется между: %d и %d страницами\n", c[1], c[2]))
 cat(sprintf("Необъясненная дисперсия (variance): %f\n", variance2))
+```
+
+
+```{r}
+hist(students$vis_p)
 ```
 
 ## 3. Как на посещение форума влияет вхождение курса в специализацию
@@ -257,16 +264,21 @@ sd <- as.numeric(data.frame(VarCorr(m0))[5])
 m0 <- display(m0)
 variance4 <- sd ^2
 coef = m0$coef
+c <- c(round(exp(coef[1] + coef[2] - sd), digits = 0), round(exp(coef[1]+ coef[2] + sd), digits = 0))
 ```
 
 ```{r , echo=FALSE}
-cat(sprintf("Незначимо!\n"))
-#cat(sprintf("\nСреднее количество страниц на форуме, которые студенты посещают на индивидуальном курсе: %.2f\n", round(exp(coef[1]), digit = 2)))
-#cat(sprintf("Среднее количество страниц на форуме, которые студенты посещают на курсе из специализации: %.2f \n", round(exp(coef[1] +coef[2]), digit = 2)))
-#cat(sprintf("Ожидаемое значение посещенных страниц форума для курса из специализации выше в %.2f раз, чем для индивидуального курса.\n", round(exp(coef[2]), digit = 3)))
+#cat(sprintf("Незначимо!\n"))
+cat(sprintf("\nСреднее количество страниц на форуме, которые студенты посещают на индивидуальном курсе: %d\n", round(exp(coef[1]), digit = 0)))
+cat(sprintf("Среднее количество страниц на форуме, которые студенты посещают на курсе из специализации: %d \n", round(exp(coef[1] +coef[2]), digit = 0)))
+cat(sprintf("Эта вероятность будет колебаться между: %d и %d.\n", c[1], c[2]))
+cat(sprintf("Ожидаемое значение посещенных страниц форума для курса из специализации выше в %.2f раз, чем для индивидуального курса.\n", round(exp(coef[2]), digit = 3)))
+
+
 #cat(sprintf("AIC модели без предиктора - %.2f и AIC с предиктором - %.2f\n", a2, a4))
 #cat(sprintf("Необъясненная дисперсия модели без предиктора - %.2f и необъясненная дисперсия с предиктором - %.2f\n", variance2, variance4))
 ```
+
 ## 4. Как на посещение форума влияет наличие на курсе заданий по программированию
 
 ### 4.1 Влияние программирования на посещение форума студентом
@@ -283,6 +295,7 @@ sd <- as.numeric(data.frame(VarCorr(m0))[5])
 m0 <- display(m0)
 variance3 <- sd ^2
 coef = m0$coef
+c <- c(round(invlogit(coef[1] + coef[2] - sd), digits = 2), round(invlogit(coef[1]+ coef[2] + sd), digits = 2))
 ```
 
 
@@ -291,8 +304,10 @@ coef = m0$coef
 ```{r , echo=FALSE}
 
 
+
 cat(sprintf("\nВероятность, посещения форума на курсе без программирования: %.f%%\n", round(invlogit(coef[1]), digit = 3)*100))
 cat(sprintf("Вероятность, посещения форума на курсе с программированием: %.f%%\n", round(invlogit(coef[1] + coef[2]), digits = 3)*100))
+cat(sprintf("Эта вероятность будет колебаться между: %d%% и %d%%.\n", c[1] *100, c[2] *100))
 ```
 
 ### 4.2 Влияние программирования на количество страниц посещенных студентом
@@ -310,6 +325,7 @@ sd <- as.numeric(data.frame(VarCorr(m0))[5])
 m0 <- display(m0)
 variance5 <- sd ^2
 coef = m0$coef
+c <- c(round(exp(coef[1] + coef[2] - sd), digits = 2), round(exp(coef[1]+ coef[2] + sd), digits = 2))
 ```
 
 
@@ -318,11 +334,13 @@ coef = m0$coef
 
 ```{r , echo=FALSE}
 
-cat(sprintf("\nОжидаемое количество страниц на форуме, которые студенты посещают на индивидуальном курсе: %.2f.\n", round(exp(coef[1]), digit = 2)))
+cat(sprintf("\nОжидаемое количество страниц на форуме, которые студенты посещают на курсах без программирования: %.2f.\n", round(exp(coef[1]), digit = 2)))
 cat(sprintf("Ожидаемое количество страниц на форуме, которые студенты посещают на курсе с программированием: %.2f.\n", round(exp(coef[1] +coef[2]), digit = 2)))
-cat(sprintf("Ожидаемое количество страниц на форуме на курсах с программированию выше количества страниц на курсах без программирования в %.2f раз.\n", round(exp(coef[2]), digit = 2)))
-cat(sprintf("AIC модели без предиктора - %.2f и AIC с предиктором - %.2f\n", a2, a5))
-cat(sprintf("Необъясненная дисперсия модели без предиктора - %.2f и необъясненная дисперсия с предиктором - %.2f\n", variance2, variance5))
+cat(sprintf("Эта количество будет колебаться между: %.2f и %.2f.\n", c[1], c[2]))
+cat(sprintf("Ожидаемое количество посещенных страниц форуме на курсах с программированию выше чем на курсах без программирования в %.2f раз.\n", round(exp(coef[2]), digit = 2)))
+
+#cat(sprintf("AIC модели без предиктора - %.2f и AIC с предиктором - %.2f\n", a2, a5))
+#cat(sprintf("Необъясненная дисперсия модели без предиктора - %.2f и необъясненная дисперсия с предиктором - %.2f\n", variance2, variance5))
 ```
 
 #### Визуализация
@@ -333,6 +351,7 @@ students %>%
 ```
 
 ## 5. Как на среднее посещение форума на курсе влияет тип заданий на курсе
+
 ### 5.1 Описательная статистика
 
 - Чтобы выяснить взаимоотношением между средним посещением и типом курса мы будем использовать **Mann-Whitney U test** потому что:
@@ -352,28 +371,20 @@ gghistogram(courses, x = "student_vis_mean", y = "..density..",
             fill = "steelblue",bins = 30, add_density = TRUE)
 shapiro.test(courses$student_vis_mean)
 
-courses %>%
-  ggplot(aes(x = student_vis_mean)) + geom_histogram() + facet_wrap(~is_peer_b, labeller = labeller(yes = "1", no = "0")) + labs(x = "Посещение форума в среднем по курсу", y = "Количество курсов с таким посещением")
 
-```
-
-```{r}
-hist(courses$student_vis_mean)
-hist(courses$student_vis_rate)
 ```
 
 
 ### 5.2 Mann-Whitney U tests в виде расчетов и с силой эффекта
-#### Во всех трех случаях есть значимая разница в среднем посещении форума между курсами с разными типами заданий
 
 ```{r}
 
 wt1 <- wilcox.test(student_vis_mean ~ is_prog_b, courses)
 w1 <- courses %>% wilcox_effsize(student_vis_mean ~ is_prog_b)
-wt2 <- wilcox.test(student_vis_mean ~ is_math_b, courses)
-w2 <- courses %>% wilcox_effsize(student_vis_mean ~ is_math_b)
-wt3 <- wilcox.test(student_vis_mean ~ is_peer_b, courses)
-w3 <- courses %>% wilcox_effsize(student_vis_mean ~ is_peer_b)
+#wt2 <- wilcox.test(student_vis_mean ~ is_math_b, courses)
+#w2 <- courses %>% wilcox_effsize(student_vis_mean ~ is_math_b)
+#wt3 <- wilcox.test(student_vis_mean ~ is_peer_b, courses)
+#w3 <- courses %>% wilcox_effsize(student_vis_mean ~ is_peer_b)
 wt4 <- wilcox.test(student_vis_mean ~ spec_b, courses)
 w4 <- courses %>% wilcox_effsize(student_vis_mean ~ spec_b)
 ```
@@ -381,32 +392,20 @@ w4 <- courses %>% wilcox_effsize(student_vis_mean ~ spec_b)
 ```{r, echo=FALSE}
 wt1
 w1
-wt2
-w2$effsize
-wt3
-w3$effsize
+#wt2
+#w2$effsize
+#wt3
+#w3$effsize
 wt4
 w4$effsize
 ```
 
 ### 5.3 Mann-Whitney U tests в виде графиков
-#### На графиках указаны статистики теста и значимость различий между курсами с разными типами заданий
 
-```{r}
+На графиках указаны статистики теста и значимость различий между курсами с разными типами заданий.
 
-stat.test <- courses %>%
-  wilcox_test(student_vis_mean ~ is_prog_b) %>%
-  add_significance()
-bxp <- ggboxplot(
-  courses, x = "is_prog_b", y = "student_vis_mean",
-  ylab = "Посещение форума в среднем по курсу", xlab = "Курс с программированием", add = "jitter") +
-scale_x_discrete(labels=c("Нет","Да"))
-stat.test <- stat.test %>% add_xy_position(x = "group")
-bxp +
-  stat_pvalue_manual(stat.test, tip.length = 0) +
-  labs(subtitle = get_test_label(stat.test, detailed = TRUE))
- 
 
+```{r, include=FALSE, echo=FALSE}
 stat.test <- courses %>%
   wilcox_test(student_vis_mean ~ is_math_b) %>%
   add_significance()
@@ -431,7 +430,25 @@ stat.test <- stat.test %>% add_xy_position(x = "group")
 bxp +
   stat_pvalue_manual(stat.test, tip.length = 0) +
   labs(subtitle = get_test_label(stat.test, detailed = TRUE))
+
+```
+
+
+```{r}
+
+stat.test <- courses %>%
+  wilcox_test(student_vis_mean ~ is_prog_b) %>%
+  add_significance()
+bxp <- ggboxplot(
+  courses, x = "is_prog_b", y = "student_vis_mean",
+  ylab = "Посещение форума в среднем по курсу", xlab = "Курс с программированием", add = "jitter") +
+scale_x_discrete(labels=c("Нет","Да"))
+stat.test <- stat.test %>% add_xy_position(x = "group")
+bxp +
+  stat_pvalue_manual(stat.test, tip.length = 0) +
+  labs(subtitle = get_test_label(stat.test, detailed = TRUE))
  
+
 stat.test <- courses %>%
   wilcox_test(student_vis_mean ~ spec_b) %>%
   add_significance()
@@ -445,3 +462,13 @@ bxp +
   labs(subtitle = get_test_label(stat.test, detailed = TRUE))
 ```
 
+### 5.4 Рассчет медиан
+
+```{r}
+students %>% group_by(is_prog_b) %>% summarize(median = median(as.numeric(vis_p), na.rm = TRUE))
+
+```
+```{r}
+students %>% group_by(spec_b) %>% summarize(median = median(as.numeric(vis_p), na.rm = TRUE))
+
+```
