@@ -110,8 +110,6 @@ summary(assignments$attempts)
 summary(assignments$vis_before_attempt_tw)
 ```
 
-
-
 ## 2. Вероятность выполнить задание с первой попытки
 
 #### Дисперсия вероятности выполнить задание с первой попытки по студентам и заданиям
@@ -126,20 +124,28 @@ mr0 <- glmer(data = assignments, factor(first_attempt) ~ 1 + (1|hse_user_id) + (
 summary(mr0)
 ```
 
-```{r, include=FALSE}
+```{r}
 sd_proficieny <- data.frame(VarCorr(mr0))[5][1, 1]
 sd_difficulty <- data.frame(VarCorr(mr0))[5][2, 1]
-coef <- display(mr0)$coef # intercept of m0
+coef <- summary(mr0)$coef[1] # intercept of m0
 
 ```
 
 ```{r, echo=FALSE}
+cat(sprintf("Отклонение по студентам (подготовленности) - %.2f.\n", sd_proficieny))
+cat(sprintf("Отклонение по заданиям (сложности) - %.2f.\n", sd_difficulty))
+```
+```{r}
 c_proficieny <- c(round(invlogit(coef - sd_proficieny), digits = 2), round(invlogit(coef + sd_proficieny), digits = 2))
-c_difficulty <- c(round(invlogit(coef - sd_proficieny- sd_difficulty), digits = 2), round(invlogit(coef - sd_proficieny + sd_difficulty), digits = 2))
+c_difficulty <- c(round(invlogit(coef - sd_proficieny - sd_difficulty), digits = 2), round(invlogit(coef - sd_proficieny + sd_difficulty), digits = 2))
 
-cat(sprintf("Вероятность  с первой попытки выолнить среднее задание средним студентом - %.f%%.\n", round(invlogit(coef), digits = 2) *100))
-cat(sprintf("Эта вероятность будет колебаться между %d%% и %d%%  с одним стандартным отклонением квалификации студента ниже и выше.\n", c_proficieny[1] *100, c_proficieny[2] *100))
-cat(sprintf("Эта вероятность будет колебаться между %d%% и %d%%  с одним стандартным отклонением сложности задания ниже и выше.\n", c_difficulty[1] *100, c_difficulty[2] *100))
+```
+
+
+```{r, echo=FALSE}
+cat(sprintf("Вероятность  с первой попытки выполнить среднее задание средним студентом - %.2f, beta - %.2f.\n", round(invlogit(coef), digits = 2), coef))
+cat(sprintf("Эта вероятность будет колебаться между %.2f и %.2f  с одним стандартным отклонением квалификации студента ниже и выше.\n", c_proficieny[1], c_proficieny[2] ))
+cat(sprintf("Эта вероятность будет колебаться между %.2f и %.2f  с одним стандартным отклонением сложности задания ниже и выше.\n", c_difficulty[1], c_difficulty[2]))
 ```
 
 ```{r}
@@ -149,7 +155,7 @@ chi <- ll1[1] - ll2[1]
 chi
 df <- 3-1
 df
-# if results are cheater than chi than they are significant
+# the results are significant if qchisq greater than chi 
 qchisq(p=.0001, df=df, lower.tail=FALSE)
 ```
 
@@ -163,7 +169,6 @@ mrr1 <- summary(mr1)
 
 ```{r}
 tab_model(mr1)
-display(mr1)
 ```
 
 
@@ -204,13 +209,12 @@ mrr1 <- summary(mr1)
 
 ```{r}
 tab_model(mr1)
-display(mr1)
 ```
 
 
 ```{r, echo=FALSE}
-cat(sprintf("Вероятность, что студент выполнит задание с первой попытки, если это курс не по программированию равна %.2f.\n", invlogit(mrr1$coefficients[1])))
-cat(sprintf("Вероятность, что студент выполнит задание с первой попытки, если это курс по программированию - %.2f\n\n", invlogit(mrr1$coefficients[1] + mrr1$coefficients[2])))
+cat(sprintf("Вероятность, что студент выполнит задание с первой попытки, если это курс по программированию равна %.2f.\n", invlogit(mrr1$coefficients[1])))
+cat(sprintf("Вероятность, что студент выполнит задание с первой попытки, если это курс не по программированию - %.2f\n\n", invlogit(mrr1$coefficients[1] + mrr1$coefficients[2])))
 ```
 
 
@@ -246,11 +250,14 @@ cat(sprintf("Вероятность, что студент выполнит за
 cat(sprintf("Вероятность, что студент выполнит задание с первой попытки,  если во время взаимодействия с заданием он посещал форум и это тест, равна %.4f.\n", invlogit((mrr3$coefficients[1] + mrr3$coefficients[4]))))
 ```
 
-#```{r}
-#tab_model(mr3)
-#display(mr3)
-#```
+```{r}
+tab <- assignments %>% group_by(vis_before_attempt_tw_b, course_item_type_desc) %>% summarise(n = n(), prob = sum(first_attempt) / n())
+tab
+```
 
+```{r}
+tab %>%  ggplot(aes(y = prob, fill = vis_before_attempt_tw_b, x = course_item_type_desc)) + geom_bar(stat='identity', position = 'dodge') 
+```
 
 ```{r, warning=FALSE}
 assignments  %>% filter(vis_before_attempt_tw < 1000) %>%   ggplot(aes(x = vis_before_attempt_tw, y = first_attempt, color = course_item_type_desc)) +
