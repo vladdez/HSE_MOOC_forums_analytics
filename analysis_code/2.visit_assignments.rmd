@@ -53,8 +53,7 @@ remove_outliers <- function(x, na.rm = TRUE, ...) {
 
 ```{r}
 wd <- getwd()
-assignments <- fread("unzip -cq ../data/assignments.zip")  %>% group_by(course_name)   %>% mutate(course_item_type_desc = factor(course_item_type_desc)) %>% ungroup()
-
+assignments <- fread("unzip -cq ../data/assignments.zip") %>% mutate(vis_tw_b = ifelse(vis_tw==0, 0, 1), vis_before_attempt_tw_b = ifelse(vis_before_attempt_tw==0, 0, 1),) %>% group_by(course_name)   %>% mutate(course_item_type_desc = factor(course_item_type_desc)) %>% ungroup()
 ```
 
 
@@ -85,8 +84,6 @@ length(unique(tw_paired$course_name))
     - студенто-задание - взаимодействие одного студента с одним заданием.  
     - rate = число студенто-заданий, во время решения которых студент зашел на форум / число студенто-заданий на курсе.
     - например: 1 - все задания побудили всех студентов зайти на форум, 0 - ни одно задание не побудило ни одного студента зайти на форум.
-  - **assessment_status** - Статус выполнения задания: 1 - удалось решить, 0 - не удалось решить.
-  - **assignments** - база данных, с данными на уровне студентов
   - **assessment_id** - токен задания;
   - **hse_user_id** - токен студента;
   - **course_item_type_desc** - тип задания;
@@ -94,19 +91,138 @@ length(unique(tw_paired$course_name))
     - ***test*** - тест;
     - ***programming*** - задание по программированию;
 
+## 0. Descriptive statistics
+
+Распределение заданий:
+```{r}
+table(assignments$course_item_type_desc)
+```
+
+Распределение посещений форума:
+
+```{r}
+table(assignments$vis_tw_b, assignments$course_item_type_desc)
+assignments %>%  ggplot(aes(x = vis_tw_b)) + geom_histogram(stat="count")+ facet_wrap(~course_item_type_desc)
+```
+
+Для наглядности сравним два распределения: посещение форума во время взаимодействия с заданием и до первой попытки.
+
+```{r, warning=FALSE}
+assignments %>%  ggplot(aes(x = vis_before_attempt_tw_b)) + geom_histogram(stat="count")+ facet_wrap(~course_item_type_desc) + ggtitle('Посещение форума до первой попытки')
+assignments %>%  ggplot(aes(x = vis_tw_b)) + geom_histogram(stat="count")+ facet_wrap(~course_item_type_desc) + ggtitle('Посещение форума во время взаимодействия')
+
+```
+
+Видим, что за все время форум посещало больше людей, что логично. Также видим, что число посещений для задний по программированию заметно увеличилось.
+
+Распределение посещений страниц:
+
+```{r}
+summary(assignments$vis_tw)
+#hist(assignments$vis_tw, breaks = 500, xlim = range(0, 500))
+assignments %>%  ggplot(aes(x = vis_tw)) + geom_histogram(stat="bin")+ facet_wrap(~course_item_type_desc) + ggtitle('Посещение форума во время взаимодействия')
+
+```
+
+Выводы
+  1. посещений форума большу во время взаимодействия с тестами.
+  2. считать число посещенных старниц не очень осмысленно, т.к. данные несбалансированы. Но мы конечно посчитаем. 
 
 
-## 1. Число посещенных страниц
+# 1. Анализ вариации посещений
+
+```{r}
+m0 <- glmer(factor(vis_tw_b) ~ 1 + (1|course_name),
+            family = binomial,
+            assignments)
+summary(m0)
+```
+
+```{r, echo=FALSE}
+sd <- as.numeric(data.frame(VarCorr(m0))[5])
+coef = summary(m0)$coef
+p <- round(invlogit(coef[1]), digits = 2)
+c <- c(round(invlogit(coef - sd), digits = 2), round(invlogit(coef + sd), digits = 2))
+
+cat(sprintf("Вероятность посещения форума на среднем курсе равна %.2f.\n", p ))
+cat(sprintf("Эта вероятность будет колебаться между: %.2f и %.2f.\n", c[1] , c[2] ))
+```
+
+
+
+```{r}
+m1 <- glmer(factor(vis_tw_b) ~ 1 + course_item_type_desc  + (1|course_name),
+            family = binomial,
+            assignments)
+summary(m1)
+```
+
+
+```{r , echo=FALSE}
+sd <- as.numeric(data.frame(VarCorr(m1))[5])
+coef = summary(m1)$coef
+c <- c(round(invlogit(coef[1] + coef[2] - sd), digits = 2), round(invlogit(coef[1]+ coef[2] + sd), digits = 2))
+
+cat(sprintf("\nВероятность, посещения форума на курсе с программированием: %.2f\n", round(invlogit(coef[1]), digit = 3)))
+cat(sprintf("Вероятность, посещения форума на курсе  без программирования: %.2f\n", round(invlogit(coef[1] + coef[2]), digits = 3)))
+cat(sprintf("Эта вероятность будет колебаться между: %.2f и %.2f.\n", c[1], c[2] ))
+```
+
+# 2. Анализ вариации посещенных страниц
+
+```{r}
+m0 <- glmer(vis_tw ~ 1 + (1|course_name),
+            family = "poisson",
+            assignments)
+dispersion_glmer(m0)
+```
+
+```{r}
+m0 <- glmer.nb(vis_tw ~ 1 + (1|course_name),
+            assignments)
+dispersion_glmer(m0)
+summary(m0)
+```
+
+```{r, echo=FALSE}
+sd <- as.numeric(data.frame(VarCorr(m1))[5])
+coef = summary(m0)$coef[1]
+p <- round(exp(coef), digits = 2)
+c <- c(round(exp(coef - sd), digits = 2), round(exp(coef + sd), digits = 2))
+
+cat(sprintf("Количество посещенных страниц форума на среднем курсе равна %.2f.\n", p ))
+cat(sprintf("Это количество будет колебаться между: %.2f и %.2f.\n", c[1] , c[2] ))
+```
+
+
+
+```{r}
+m1 <- glmer.nb(vis_tw ~ 1 + course_item_type_desc  + (1|course_name),
+            assignments)
+summary(m1)
+```
+
+
+```{r , echo=FALSE}
+sd <- as.numeric(data.frame(VarCorr(m1))[5])
+coef = summary(m1)$coef
+c <- c(round(exp(coef[1] + coef[2] - sd), digits = 2), round(exp(coef[1]+ coef[2] + sd), digits = 2))
+
+cat(sprintf("Количество посещенных страниц форума на курсе с программированием: %.2f\n", round(exp(coef[1]), digit = 3)))
+cat(sprintf("Количество посещенных страниц на курсе без программирования: %.2f\n", round(exp(coef[1] + coef[2]), digits = 3)))
+cat(sprintf("Это количество будет колебаться между: %.2f и %.2f.\n", c[1], c[2] ))
+```
+
+## 3. Сравнение средних посещенных страниц
 
 <span style="color:green">**Differ!**</span>
 
 Для наглядности визуализируем среднее число посещений форума во время выполнения тестов и заданий по программированию:
 
 ```{r}
-summary(assignments$vis_tw)
-#table(assignments$vis_tw)
 sum(table(assignments$vis_tw)[1:45]) / nrow(assignments)
 ```
+
 97% студентов посещают форум от 0 до 45 раз. Округлим значение vis_tw до 60.
 
 
@@ -145,31 +261,30 @@ tw %>% ungroup() %>% wilcox_effsize(vis_tw ~ course_item_type_desc)
 ```
 
 
-## 2. Факт посещения
+## 4. Сравнение средних посещений
+
 
 ```{r}
-tw <- assignments %>%
-  mutate(n = n_distinct(course_item_type_desc)) %>% mutate(vis_tw_b = case_when(
-    vis_tw != 0 ~ 1,
-    vis_tw == 0 ~ 0
-))
+
+assignments  %>%  group_by(course_name, course_item_type_desc) %>% summarise(vis_tw_mean = round(mean(vis_tw_b), digits = 1), vis_tw_median = round(median(vis_tw_b), digits = 1)) %>% group_by(course_item_type_desc) %>% summarise(vis_b_mean = round(mean(vis_tw_mean), digits = 1), vis_b_median = round(median(vis_tw_median), digits = 1))
+
+assignments  %>% group_by(course_item_type_desc) %>% summarise(vis_b_mean = round(mean(vis_tw_b), digits = 1), vis_b_median = round(median(vis_tw_b), digits = 1))
 
 ```
 
-
 ```{r}
-wilcox.test(vis_tw_b ~ course_item_type_desc, tw, exact = FALSE)
-tw %>% ungroup() %>% wilcox_effsize(vis_tw_b ~ course_item_type_desc)
+wilcox.test(vis_tw_b ~ course_item_type_desc, assignments, exact = FALSE)
+assignments %>% ungroup() %>% wilcox_effsize(vis_tw_b ~ course_item_type_desc)
 ```
 
 ```{r}
-tw  %>% ggplot(aes(x = course_item_type_desc, y = vis_tw_b)) + geom_boxplot() + geom_point() + stat_summary(fun.y = "mean", color = "red",  size = 3, geom = "point")  + scale_x_discrete(labels=c("Программирование", "Тест")) +
+assignments  %>% ggplot(aes(x = course_item_type_desc, y = vis_tw_b)) + geom_boxplot() + geom_point() + stat_summary(fun.y = "mean", color = "red",  size = 3, geom = "point")  + scale_x_discrete(labels=c("Программирование", "Тест")) +
   labs(x = "Тип задания", y = "Вероятность посещения") + ggtitle("Посещение форума") + theme(plot.title = element_text(hjust = 0.5))
 
 
 ```
 
-## 3. Доля посещений во время взаимодействия с заданием
+## 5. Доля посещений во время взаимодействия с заданием
 
 <span style="color:green">**Differ!**</span>
 
@@ -212,4 +327,3 @@ tw  %>% ggplot(aes(x = course_item_type_desc, y = rate)) + geom_boxplot() + geom
 wilcox.test(rate ~ course_item_type_desc, tw)
 tw %>% ungroup() %>% wilcox_effsize(rate ~ course_item_type_desc)
 ```
-
