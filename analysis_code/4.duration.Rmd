@@ -53,7 +53,7 @@ students$vis_b <-factor(students$vis_b)
 
 ## Описание переменных
 
-  - ***vis_p*** - индивидуальное посещение форума;
+  - ***vis_b*** - посещал форум или нет;
   - ***duration*** - индивидуальная длительность прохождения курса в днях;
 
 ## 1.  Дисперсия длительности
@@ -61,6 +61,7 @@ students$vis_b <-factor(students$vis_b)
 ```{r}
 students %>% summarise(mean = mean(duration), variance = var(duration))
 ```
+
 ```{r}
 hist(students$duration)
 ```
@@ -104,8 +105,6 @@ summary(m1)
 
 ## 3. Длительность прохождения курса и посещение форума
 
-## 3.2. traditional method
-
 Выбор статистических инструментов:
 
   1. Переменная vis_p счетная, для таких переменных используется пуассоновское или отрицательно-биномиальное распределение.
@@ -113,13 +112,13 @@ summary(m1)
 
 
 ```{r}
-m1 <-  glm.nb(duration ~ vis_p, students)
+m1 <-  glm.nb(duration ~ vis_b, students)
 od <- odTest(m1)
 
 ```
 
 ```{r}
-m1 <- glm.nb(duration ~ vis_p + is_prog_b, students)
+m1 <- glm.nb(duration ~ vis_b, students)
 summary(m1)
 ```
 
@@ -129,54 +128,17 @@ tab_model(m1)
 
 
 ```{r , echo=FALSE}
-cat(sprintf("Увеличение количества посещенных страниц форума на 1 страницу удлиняет ожидаемое прохождение курса на %.3f дней.\n", exp(m1$coefficients[2])))
-cat(sprintf("Человек, который совершил 1 посещение форума закончил курс за %.2f дней.\n", (exp(m1$coefficients[1] + m1$coefficients[2]* 1))))
-cat(sprintf("Человек, который совершил 16 посещений форума закончил курс за %.2f дней.\n", (exp(m1$coefficients[1] + m1$coefficients[2]* 16))))
-cat(sprintf("Человек, который совершил 500 посещений форума закончил курс за %.2f дней.\n ", (exp(m1$coefficients[1] + m1$coefficients[2]* 500))))
+cat(sprintf("Если студент не посещает форум, то он проходит курс за %.3f дней.\n", exp(m1$coefficients[1])))
+cat(sprintf("Если студент посещает форум, то он проходит курс за %.2f дней.\n", exp(m1$coefficients[1] + m1$coefficients[2])))
+cat(sprintf("Если студент посещает форум, то он проходит курс за %.2f дней.\n", exp(m1$coefficients[2])))
 
 ```
 
 
 ```{r}
 students %>% 
-  ggplot(aes(y = duration, x = vis_p)) + geom_point() +  geom_smooth(method="glm.nb", color = "red") + ggtitle("Влияние посещения форума на длительность прохождения курса") + labs(x="Посещенные страницы", y = "Дни") +  theme(plot.title = element_text(hjust = 0.5))
+  ggplot(aes(y = duration, x = vis_b)) + geom_point() +  geom_boxplot() + ggtitle("Влияние посещения форума на длительность прохождения курса") + labs(x="Посещал форум или нет", y = "Дни") +  theme(plot.title = element_text(hjust = 0.5))
 ```
 
-## 3.2. binning method
-
-## Means
-
-```{r}
-students_short <- students %>% group_by(course_slug) %>% summarise(vis_mean = round(mean(vis_p, na.rm =TRUE)), duration_mean = round(mean(duration, na.rm =TRUE), digits = 2), is_prog_b = is_prog_b[1])
-```
-
-```{r}
-m2 <- lm(duration_mean ~ vis_mean, students_short)
-summary(m2)
-```
-
-```{r}
-students_short  %>%
-  ggplot(aes(y = duration_mean, x = vis_mean)) + geom_point() +  geom_smooth(method="lm",color = "red") + ggtitle("Влияние посещения форума на длительность прохождения курса") + labs(x="Среднее посещения", y = "Средняя длительность") +  theme(plot.title = element_text(hjust = 0.5)) 
-```
-```{r}
-res <- resid(m2)
-plot(fitted(m2), res)
-abline(0,0)
-qqnorm(res)
-qqline(res)
-```
-
-```{r}
-m2 <- lm(duration_mean ~ remove_outliers(vis_mean), students_short)
-summary(m2)
-```
-```{r}
-res <- resid(m2)
-plot(fitted(m2), res)
-abline(0,0)
-qqnorm(res)
-qqline(res)
-```
 
 
