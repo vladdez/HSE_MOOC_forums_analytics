@@ -41,7 +41,7 @@ remove_outliers <- function(x, na.rm = TRUE, ...) {
 wd <- getwd()
 
 courses <- fread("../data/courses.csv") %>%
-  mutate(vis_learner_p_norm = round(student_n / vis_learner_p, digits = 2), student_vis_mean = remove_outliers(student_vis_mean), passing_rate = round(passing_rate, digits = 2))
+  mutate(visit_rate = round(vis_learner_b/ student_n, digits = 2), passing_rate = round(passing_rate, digits = 2))
 
 
 ```
@@ -61,7 +61,7 @@ courses <- fread("../data/courses.csv") %>%
 - **Тип задания** - бинарные переменные; сообщают есть ли такой тип задания на курсе;
   - ***is_prog*** - есть ли задание по программированию;
   - ***is_math*** - есть ли задание по математике;
-  - ***is_peer*** - есть ли пир-ревью;
+  - ***is_peer*** - есть ли пир-ревью.
  
  
 - **Метрики форума**
@@ -70,9 +70,10 @@ courses <- fread("../data/courses.csv") %>%
   - ***q_learner*** - абсолютное количество вопросов студентов на курсе;
   - ***ans_learner_n*** - количество ответов студентов на курсе / количество студентов на курсе;
   - ***q_learner_n*** - количество вопросов студентов на курсе / количество студентов на курсе;
+  - ***forum_rate*** - количество студентов заглянувших на форум / количество студентов на курсе.
 
 - **Метрика выживаемости**
-  - ***passing_rate*** - прошедшие курс / записавшиеся на курс
+  - ***passing_rate*** - прошедшие курс / записавшиеся на курс.
 
 ### Как создавались бинарные переменные типов заданий
  - К сожалению, не всегда удается автоматически определить какие на курсе задания, а потому приходится использовать разнообразные признаки для их кодирования.
@@ -94,64 +95,34 @@ courses <- fread("../data/courses.csv") %>%
 
 ```{r}
 hist(courses$passing_rate)
-hist(courses$student_vis_mean)
-hist(log(courses$student_vis_mean))
+hist(courses$visit_rate)
 ```
 
-
-```{r, message=FALSE, warning=FALSE}
-courses %>%
-  ggplot(aes(x = passing_rate, y = student_vis_mean)) + geom_point() +  geom_smooth(method = "lm")
-
-```
-
-Распределение остатков зависимой переменной:
-
-
-```{r}
-m1 <-  lm((student_vis_mean) ~ passing_rate, courses)
-res <- resid(m1)
-plot(fitted(m1), res)
-abline(0,0)
-qqnorm(res)
-qqline(res)
-```
-
-Мы видим, что распределение остатков нельзя назвать нормальным поскольку большая часть значений остатков  student_vis_mean скошены. Модель недооценивает значения. 
-
-Поэтому мы трансформировали эту переменную с помощью функции log()
-
-### 2.2 Трансформированная регрессия
+### 2.2 Выживаемость и среднее посещение форума
 
 
 
 ```{r}
-m1 <-  lm(log(student_vis_mean) ~ passing_rate, courses)
+m1 <-  lm(visit_rate ~ passing_rate, courses)
 summary(m1)
 ```
-
+Чтобы получить данное значение мы нашли разницу между интерсептом и интерсепт + угол наклона, а полученное значение экспоненциировали:
 
 ```{r, echo=FALSE}
 
-cat(sprintf("Изменение на 1 пункт в выживаемости курса уменьшает на %.3f пунктов среднее количество посещений форума.\nЧтобы получить данное значение мы нашли разницу между интерсептом и интерсепт + угол наклона, а полученное значение экспоненциировали\nЭто изменение значимо с p = %.3f", exp(m1$coefficients[1]) - exp(m1$coefficients[1] + m1$coefficients[2]), summary(m1)$coefficients[8]))
-
+cat(sprintf("Изменение на 1 пункт в выживаемости курса изменяет на %.3f пунктов среднее количество посещений форума.\n", m1$coefficients[2]))
+cat(sprintf("Это изменение значимо с p = %.3f", summary(m1)$coefficients[8]))
 ```
 Визуализация 
 
 ```{r, message=FALSE, warning=FALSE}
 courses %>%
-  ggplot(aes(x = passing_rate, y = log(student_vis_mean))) + geom_point() +  geom_smooth(method = "lm")
-```
-
-```{r, echo=FALSE}
-
-cat(sprintf("Теперь остатки распределены более равномерно \n"))
-
+  ggplot(aes(x = passing_rate, y = visit_rate)) + geom_point() +  geom_smooth(method = "lm")
 ```
 
 Проверка нормальности распределения 
 ```{r}
-m1 <-  lm(log(student_vis_mean) ~ passing_rate, courses)
+m1 <-  lm(visit_rate ~ passing_rate, courses)
 res <- resid(m1)
 plot(fitted(m1), res)
 abline(0,0)
