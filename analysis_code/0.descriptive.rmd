@@ -131,4 +131,10 @@ Number of courses within specialization and not:
 table(courses$spec_b)
 ```
 
+Status of first attempt for programming assignments and quizzes:
+
+```{r}
+table(assignments$first_attempt)
+```
+
 

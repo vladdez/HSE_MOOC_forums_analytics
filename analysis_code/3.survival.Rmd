@@ -22,9 +22,9 @@ library(broom)
 library(ggplot2)
 library(tidyr)
 library(arm)
+library(car)
 library(rstatix)
 library(ggpubr)
-library(stargazer)
 
 remove_outliers <- function(x, na.rm = TRUE, ...) {
   qnt <- quantile(x, probs=c(.25, .75), na.rm = na.rm, ...)
@@ -136,6 +136,7 @@ qqline(res)
 m1 <-  lm(passing_rate ~ is_prog_b, courses)
 summary(m1)
 ```
+
 ```{r}
 
 wt1 <- wilcox.test(passing_rate ~ is_prog_b, courses)
@@ -143,9 +144,18 @@ w1 <- courses %>% wilcox_effsize(passing_rate ~ is_prog_b)
 wt1
 w1
 ```
+
 ```{r, message=FALSE, warning=FALSE}
 courses %>%
   ggplot(aes(y = passing_rate, x = factor(is_prog_b))) + geom_boxplot() 
+```
+
+## 4. Влияние типа курса и выживаеммости на посещение форума
+
+```{r}
+m1 <-  lm(visit_rate ~ passing_rate + is_prog_b , courses)
+summary(m1)
+vif(m1)
 ```
 
 ## Выводы

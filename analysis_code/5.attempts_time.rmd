@@ -23,6 +23,7 @@ library(parameters)
 library(rstatix)
 library(blmeco)
 library(arm) # for display()
+library(car) # for vif()
 
 remove_outliers <- function(x, na.rm = TRUE, ...) {
   qnt <- quantile(x, probs=c(.25, .75), na.rm = na.rm, ...)
@@ -39,7 +40,7 @@ remove_outliers <- function(x, na.rm = TRUE, ...) {
 
 ```{r}
 wd <- getwd()
-assignments <- fread("unzip -cq ../data/assignments.zip")  %>% group_by(course_name)   %>% mutate(course_item_type_desc = factor(course_item_type_desc)) %>% ungroup()
+assignments <- fread("unzip -cq ../data/assignments.zip")  %>%  mutate(course_item_type_desc = factor(course_item_type_desc), vis_tw_b = ifelse(vis_tw==0, 0, 1)) %>% group_by(course_item_id) %>% mutate(difficulty =  sum(first_attempt == 0) / n()) %>% ungroup()
 
 ```
 
@@ -67,6 +68,7 @@ assignments <- fread("unzip -cq ../data/assignments.zip")  %>% group_by(course_n
     - ***lecture*** - тест в видео (исключаю из анализа);
     - ***test*** - тест;
     - ***programming*** - задание по программированию;
+  - **difficulty** - сложность = число проваленных ошибок за задание, число студентов решавших это задание.
     
     
 ## 1. Попытки
@@ -139,9 +141,8 @@ dispersion_glmer(m0p)
 m0 <- glmer(attempts ~ 1 + (1|course_name), family = "poisson",
             tw)
 summary(m0)
-
-
 ```
+
 ```{r, include=FALSE}
 sd <- as.numeric(data.frame(VarCorr(m0))[5])
 variance2 <- sd ^2
@@ -264,5 +265,57 @@ variance5 <- sd ^2
 
 cat(sprintf("\nКоличество минут на задание по программированию: %.2f.\n", round(exp(coef[1]), digit = 2)))
 cat(sprintf("Количество минут за тесты: %.2f.\n", round(exp(coef[1] + coef[2]), digit = 2)))
-cat(sprintf("Количество минут за задание по программированию выше количества попыток за тест в %.2f раз.\n", round(exp(coef[2]), digit = 2)))
+cat(sprintf("Длительность задание по программированию дольше теста в %.2f раз.\n", round(exp(coef[2]), digit = 2)))
 ```
+
+
+## 3. Сложность и тип задания
+
+```{r}
+hist(assignments$difficulty)
+```
+
+```{r}
+m1 <- glmer(difficulty ~ course_item_type_desc + (1|course_name), family = "binomial", assignments)
+summary(m1)
+
+```
+```{r, include=FALSE}
+sd <- as.numeric(data.frame(VarCorr(m1))[5])
+coef =  summary(m1)$coefficients
+variance5 <- sd ^2
+
+```
+
+```{r , echo=FALSE}
+
+cat(sprintf("\nСложность задания по программированию: %.2f.\n", round(invlogit(coef[1]), digit = 2)))
+cat(sprintf("Сложность теста: %.2f.\n", round(invlogit(coef[1] + coef[2]), digit = 2)))
+cat(sprintf("Сложность задания по программированию больше теста в %.2f раз.\n", round(invlogit(coef[2]), digit = 2)))
+```
+
+## 4. Проверка на мультиколлинеарность
+
+```{r}
+tw <- assignments %>% filter(assignment_time < 144)
+m1 <- glmer(vis_tw_b ~ assignment_time + course_item_type_desc + (1|course_name), family = "binomial", tw)
+summary(m1)
+vif(m1)
+```
+```{r}
+tw <- assignments %>% mutate(attempts = case_when(
+    attempts < 11 ~ attempts,
+    attempts >= 11 ~ as.integer(11)
+))
+m1 <- glmer(vis_tw_b ~ attempts + course_item_type_desc + (1|course_name), family = "binomial", tw)
+summary(m1)
+vif(m1)
+
+```
+```{r}
+m1 <- glmer(vis_tw_b ~ difficulty + course_item_type_desc + (1|course_name), family = "binomial", assignments)
+summary(m1)
+vif(m1)
+```
+
+

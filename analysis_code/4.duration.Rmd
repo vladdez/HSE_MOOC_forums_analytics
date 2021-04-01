@@ -23,6 +23,7 @@ library(pscl) # for odTest
 library(arm)
 library(sjPlot)
 library(rstatix)
+library(car)
 
 remove_outliers <- function(x, na.rm = TRUE, ...) {
   qnt <- quantile(x, probs=c(.25, .75), na.rm = na.rm, ...)
@@ -140,5 +141,11 @@ students %>%
   ggplot(aes(y = duration, x = vis_b)) + geom_point() +  geom_boxplot() + ggtitle("Влияние посещения форума на длительность прохождения курса") + labs(x="Посещал форум или нет", y = "Дни") +  theme(plot.title = element_text(hjust = 0.5))
 ```
 
+## 4. Влияние длительности и выживаемости на посещение форума
 
+```{r}
+m1 <- glm.nb(duration ~ vis_b + factor(is_prog_b), students)
+summary(m1)
+vif(m1)
+```
 
