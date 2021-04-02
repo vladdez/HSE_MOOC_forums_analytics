@@ -39,7 +39,7 @@ remove_outliers <- function(x, na.rm = TRUE, ...) {
 ```{r}
 wd <- getwd()
 assignments <- fread("unzip -cq ../data/assignments.zip")  %>% group_by(course_name) %>%
- mutate(course_item_type_desc = factor(course_item_type_desc), vis_before_attempt_tw_b = ifelse(vis_before_attempt_tw==0, 0, 1), vis_tw_b = ifelse(vis_tw==0, 0, 1), vis_before_attempt_tw_b = factor(vis_before_attempt_tw_b)) 
+ mutate(course_item_type_desc = factor(course_item_type_desc), vis_before_attempt_tw_b = ifelse(vis_before_attempt_tw==0, 0, 1), vis_b = ifelse(vis_tw==0, 0, 1), vis_before_attempt_tw_b = factor(vis_before_attempt_tw_b)) 
 
 ```
 
@@ -65,6 +65,7 @@ assignments <- fread("unzip -cq ../data/assignments.zip")  %>% group_by(course_n
   - **vis_before_attempt_tw_b** - Посещал студент форум или нет с момента, когда начал решать задание и до момента когда совершил первую попытку. В анализе используется эта переменная потому что с предыдущей модель не сходится;
   - **assessment_status** - Статус выполнения задания: 1 - удалось решить, 0 - не удалось решить.
   - **first_attempt** - Статус выполнения задания после первой попытки: 1 - удалось решить с первой попытки, 0 - не удалось решить с первой попытки.
+  - **vis_b** - заходил студент на форум во время взаимодействия с заданием или нет?
 
 Менее важные:
 
@@ -84,7 +85,7 @@ assignments <- fread("unzip -cq ../data/assignments.zip")  %>% group_by(course_n
 ```{r}
 table(assignments$assessment_status)
 table(assignments$first_attempt)
-table(assignments$course_item_type_desc, assignments$vis_tw_b)
+table(assignments$course_item_type_desc, assignments$vis_b)
 table(assignments$course_item_type_desc, assignments$vis_before_attempt_tw_b)
 ```
 ```{r}
