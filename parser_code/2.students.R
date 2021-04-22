@@ -6,6 +6,7 @@ library(data.table)
 library(janitor)
 library(glmer)
 library(lme4)
+
 library(sjPlot)
 library(broom)
 library(tidyr)
@@ -78,8 +79,10 @@ is_item_prog <-function(course_name)
     }
   return(res)
 }
+
+is_item_prog(course_name)
 #################### is course with math?  
-course_name <- "upravlenie-stoimostju-kompanii"
+course_name <- "delivery-problem"
 is_item_math <- function(course_name)
 {
   res <- fread(paste0(courses_path, '/', course_name, '/', 'assessment_math_expression_questions.csv')) %>% nrow()  
@@ -105,8 +108,9 @@ visit_grade <- function()
   list <- list.files(path = "/home/vovan/Desktop/visits", full.names = T)
   total <- 0
   staff_act <- 0
+  enrolled_t <- 0
   for (l in list) {
-    n <- fread(l)
+    visits_per_student <- fread(l)
     course_name = str_sub(l, start = nchar(visits_path)+1, end=-5)
     payment0 <- fread(paste0(courses_path, '/', course_name, '/', 'users_courses__certificate_payments.csv')) 
     video_watched <- fread(paste0(watch_path, '/', course_name, '.csv')) 
@@ -162,31 +166,37 @@ visit_grade <- function()
     #add grades
     grades <- fread(paste0(courses_path, '/', course_name, '/', 'course_grades.csv')) %>% 
       rename("hse_user_id" = grep("user", names(.), value = TRUE))  %>% 
-      dplyr::select(course_id, hse_user_id, course_passing_state_id, course_grade_overall, course_grade_ts) 
+      dplyr::select(course_id, hse_user_id, course_passing_state_id, course_grade_overall, course_grade_ts, course_grade_overall_passed_items) 
     
     
     ### merge learners
-    grades1 <-merge(grades, learners) %>% 
-      dplyr::select(course_id, hse_user_id, course_passing_state_id, course_grade_overall, course_grade_ts, course_membership_ts)
+    grades1 <-left_join(grades, learners) %>% 
+      dplyr::select(course_id, hse_user_id, course_passing_state_id, course_grade_overall, course_grade_ts, course_membership_ts, course_grade_overall_passed_items)
     
     # time to merge all datasets: n, grades, payment? watched video
     ### merge grades
-    passing_rate <- nrow(grades1 %>% filter(course_passing_state_id != 0)) / nrow(grades1)
-    
-    data_grades <- merge(n, grades1, all = TRUE) %>% mutate(vis_p = case_when(
+    passing_rate <- nrow(grades1 %>% filter(course_passing_state_id != 0, course_grade_overall_passed_items != 0)) / nrow(grades1)
+
+    data_grades <- left_join(grades1, visits_per_student) %>% mutate(vis_p = case_when(
       is.na(n) == TRUE ~ 0,
       is.na(n) != TRUE ~ as.double(n)
     ),
     vis_b = case_when(
       is.na(n) == TRUE ~ 0,
       is.na(n) != TRUE ~1
-    )) %>% filter(course_passing_state_id != 0) %>% dplyr::select(-n)
+    ))
+    
+    enrolled <- nrow(data_grades)
+    data_grades <- data_grades %>% filter(course_grade_overall_passed_items != 0) %>% dplyr::select(-course_grade_overall_passed_items)
+    enrolled_act <- nrow(data_grades)
+    
+    data_grades <- data_grades %>% filter(course_passing_state_id != 0) %>% dplyr::select(-n)
     
     data_grades$course_slug <- str_sub(l, start = nchar(visits_path)+1, end=-5)
     
     ### merge forum activity
-    data_activity <-  merge(data_grades, questions, all = TRUE)
-    data_activity <-  merge(data_activity, answers, all = TRUE) %>% mutate(q_n = case_when(
+    data_activity <-  left_join(data_grades, questions)
+    data_activity <-  left_join(data_activity, answers) %>% mutate(q_n = case_when(
       is.na(q_n) == TRUE ~ 0,
       is.na(q_n) != TRUE ~ as.double(q_n)
     ),
@@ -196,7 +206,7 @@ visit_grade <- function()
     ))
     
     ### merge watched video
-    data_watch <- merge(data_activity, video_watched, all = TRUE) %>% mutate(watch_all = case_when(
+    data_watch <- left_join(data_activity, video_watched) %>% mutate(watch_all = case_when(
       is.na(watch_all) == TRUE ~ 0,
       is.na(watch_all) != TRUE ~ as.double(watch_all)
     ),
@@ -211,7 +221,7 @@ visit_grade <- function()
     ### merge payment
     if (nrow(payment0) != 0)
     {
-      data_pay <- merge(data_watch, payment, all = TRUE) %>% 
+      data_pay <- left_join(data_watch, payment) %>% 
       filter(!is.na(course_passing_state_id)) %>% 
         mutate(was_pay = case_when(
         is.na(was) == TRUE ~ 0,
@@ -269,7 +279,7 @@ visit_grade <- function()
       mutate(course_slug = str_sub(l, start = nchar(visits_path)+1, end=-5), 
              student_n = nrow(data_pay), student_vis_mean = mean(data_pay$vis_p),
              vis_learner_p = sum(data_pay$vis_p), vis_learner_b = sum(data_pay$vis_b),
-             q_learner = sum(data_pay$q_n), ans_learner =sum(data_pay$ans_n))
+             q_learner = sum(data_pay$q_n), ans_learner =sum(data_pay$ans_n), enrolled = enrolled, enrolled_act = enrolled_act)
     if (staff_act == 0){
       staff_act <- staff_a
     }
@@ -277,7 +287,9 @@ visit_grade <- function()
       staff_act <- rbind(staff_act, staff_a)
     }
   }
-
+  
+  ## merging all data
+  
   total2 <- total %>%  group_by(course_slug) %>% 
     mutate(duration = round(difftime(course_grade_ts, course_membership_ts, units = "days")))
   
@@ -302,9 +314,32 @@ visit_grade <- function()
   
   ## merge staff info
   courses <- students %>% 
-    distinct(course_slug, passing_rate, spec_b, field, is_prog_n,is_prog_b, is_math_n,  is_math_b, is_peer_n, is_peer_b) %>% 
-    merge(., staff_act, all = TRUE) %>% filter(!(is.na(field))) %>% 
+    distinct(course_slug, course_name,  passing_rate, spec_b, field, is_prog_n,is_prog_b, is_math_n,  is_math_b, is_peer_n, is_peer_b) %>% 
+    merge(., staff_act, all = TRUE)  %>% filter(!(is.na(field))) %>% 
     mutate(item_type =(is_math_b + is_prog_b))
+  
+  #changing discrete math
+  courses[11, "q_staff"] <- courses[11, "q_staff"] + courses[12, "q_staff"]
+  courses[11, "ans_staff"] <- courses[11, "ans_staff"] + courses[12, "ans_staff"]
+  courses[11, "student_n"] <- courses[11, "student_n"] + courses[12, "student_n"]
+  courses[11, "vis_learner_p"] <- courses[11, "vis_learner_p"] + courses[12, "vis_learner_p"]
+  courses[11, "q_learner"] <- courses[11, "q_learner"] + courses[12, "q_learner"]
+  courses[11, "ans_learner"] <- courses[11, "ans_learner"] + courses[12, "ans_learner"]
+  courses[11, "enrolled"] <- courses[11, "enrolled"] + courses[12, "enrolled"]
+  courses[11, "enrolled_act"] <- courses[11, "enrolled_act"] + courses[12, "enrolled_act"]
+  courses[11, "passing_rate"] <- courses[11, "enrolled_act"] / courses[11, "student_n"]
+  courses[11, "student_vis_mean"] <- (courses[11, "student_vis_mean"] + courses[12, "student_vis_mean"])/2
+  courses <- courses %>% filter(course_slug != "discrete-maths")
+  
+  students <- students %>% dplyr::select(-passing_rate) %>% mutate(course_name = case_when(
+    course_name == "Discrete Mathematics" ~ "Discrete Math and Analyzing Social Graphs",
+    course_name != "Discrete Mathematics" ~ course_name)) %>% mutate(course_slug = case_when(
+      course_slug == "discrete-maths" ~ "discrete-math-and-analyzing-social-graphs",
+      course_slug != "discrete-maths" ~ course_slug)) %>% mutate(course_id = case_when(
+        course_id == "IZ0T5BqLEeq2sRKJ1tcTrQ" ~ "Yv6V9vYyEemyJQ5Yl6fTyg",
+        course_id != "IZ0T5BqLEeq2sRKJ1tcTrQ" ~ course_id))
+  
+  
   write.csv(courses, file=paste("/home/vovan/Desktop/data/courses.csv", sep = ""), row.names = FALSE)
   
   return(students)
@@ -317,7 +352,7 @@ students <- visit_grade()
 
 write.csv(students, file=paste("/home/vovan/Desktop/data/students.csv", sep = ""), row.names = FALSE)
 
-courses <- fread("/home/vovan/Desktop/data/courses.csv")
+courses <- fread("/home/vovan/Desktop/data/courses.csv") #%>% mutate(d = enrolled - enrolled_act)
 
 
 u <- data.frame(unique(total$course_id), unique(total$course_slug))
