@@ -1,61 +1,59 @@
-"course_slug","is_prog_n","is_prog_b","is_math_n","is_math_b","is_peer_n","is_peer_b","passing_rate","field","spec_b","q_staff","ans_staff","student_n","student_vis_mean","vis_learner_p","vis_learner_b","q_learner","ans_learner","enrolled","item_type"
-"algorithms-on-graphs",5,1,45,1,0,0,0.732887762157179,"Computer Science","SPEC",53,847,6360,26.5391509433962,168789,4260,525,3597,11942,2
-"algorithms-on-strings",3,1,177,1,0,0,0.692908400168848,"Computer Science","SPEC",60,490,3283,17.603716113311,57793,2018,187,2418,6621,2
-"authorschools",0,0,0,0,10,1,0.63013698630137,"Social Sciences","IND",0,0,92,23.1195652173913,2127,82,39,31,236,0
-"calculus-and-optimization-for-machine-learning",0,0,416,1,1,1,0.623931623931624,"Math and Logic","SPEC",92,56,949,23.432033719705,22237,310,166,1540,1845,1
-"combinatorics",46,1,129,1,0,0,0.427911646586345,"Computer Science","SPEC",4,368,2131,35.8756452369779,76451,1153,357,600,5481,2
-"complex-variable",0,0,82,1,15,1,0.318181818181818,"Physical Science and Engineering","IND",1,30,35,9.42857142857143,330,24,2,0,457,1
-"cultural-creative-industries",0,0,0,0,4,1,0.643987341772152,"Arts and Humanities","IND",0,0,407,3.21867321867322,1310,184,17,13,849,0
-"deep-learning-in-computer-vision",3,1,0,0,5,1,0.235721703011423,"Computer Science","SPEC",0,0,681,117.696035242291,80151,540,812,2143,5237,1
-"delivery-problem",32,1,0,0,0,0,0.880386983289358,"Computer Science","SPEC",0,34,1001,22.8601398601399,22883,526,73,102,1343,1
-"digital-transformation-of-megapolises",0,0,0,0,2,1,0.517241379310345,"Business","IND",0,0,90,30.4222222222222,2738,82,20,45,334,0
-"discrete-math-and-analyzing-social-graphs",1,1,46,1,0,0,0.340840840840841,"Math and Logic","SPEC",0,101,1362,22.3825256975037,30485,806,120,270,4309,2
-"discrete-maths",1,1,154,1,0,0,0.818181818181818,"Computer Science","IND",1,15,81,97.1728395061728,7871,81,30,115,144,2
-"ekonomicheskaya-sociologiya",0,0,0,0,0,0,0.553870292887029,"Social Sciences","IND",9323,32,2118,3.52360717658168,7463,911,22,11190,4165,0
-"ekonomika-dlya-neekonomistov",0,0,0,0,2,1,0.133174224343675,"Social Sciences","IND",2,866,3069,12.8794395568589,39527,1760,184,354,24947,0
-"enumerative-combinatorics",0,0,59,1,2,1,0.163600525624179,"Math and Logic","IND",9,66,249,116.610441767068,29036,223,126,253,1823,1
-"financial-instruments-capstone",0,0,23,1,6,1,0.871794871794872,"Business","SPEC",0,0,34,60.3235294117647,2051,29,44,48,141,1
-"findjob",0,0,0,0,0,0,0.972636815920398,"Personal Development","IND",0,0,391,1.34782608695652,527,114,2,1,748,0
-"first-steps-in-linear-algebra-for-machine-learning",2,1,69,1,0,0,0.608853410740203,"Math and Logic","SPEC",30,3,839,11.0953516090584,9309,452,60,316,1684,2
-"formal-concept-analysis",0,0,14,1,0,0,0.0608614232209738,"Data Science","IND",0,144,65,98.5846153846154,6408,59,57,87,1251,1
-"general-relativity",0,0,10,1,12,1,0.275522755227552,"Physical Science and Engineering","IND",25,752,224,207.986607142857,46589,184,490,526,4523,1
-"hadron-collider-machine-learning",5,1,8,1,0,0,0.428104575163399,"Computer Science","SPEC",0,28,262,65.4198473282443,17140,205,72,109,934,2
-"industrial-organization",0,0,0,0,0,0,0.345959595959596,"Business","IND",0,0,137,6.2992700729927,863,61,11,8,689,0
-"infrastruktura-rynka",0,0,0,0,0,0,0.675619834710744,"Business","SPEC",0,0,327,9.33639143730887,3053,157,30,27,712,0
-"int-relations-history",0,0,0,0,0,0,0.790419161676647,"Arts and Humanities","IND",0,0,396,1.4949494949495,592,147,5,4,692,0
-"international-relations-theory",0,0,0,0,4,1,0.325210871602624,"Social Sciences","IND",0,0,1041,23.6099903938521,24578,717,860,1188,6086,0
-"intro-to-deep-learning",10,1,113,1,0,0,0.189603270881071,"Data Science","SPEC",42,1245,4220,126.064928909953,531994,3907,2078,7609,27370,2
-"intro-to-numerical-analysis",0,0,0,0,8,1,0.830678960603521,"Computer Science","IND",0,47,991,13.6337033299697,13511,736,166,215,2244,0
-"investicii-akcii",0,0,0,0,0,0,0.242079610073111,"Business","SPEC",0,1,298,127.181208053691,37900,290,278,553,2145,0
-"klientskaya-basa-vkhodyaschii-marketing",0,0,0,0,0,0,0.787460148777896,"Business","SPEC",0,0,741,5.51012145748988,4083,286,15,36,1053,0
-"language-processing",2,1,117,1,4,1,0.175232315569884,"Data Science","SPEC",50,922,1848,135.628246753247,250641,1651,1411,4943,15368,2
-"law-invest-ideas",0,0,0,0,0,0,0.487179487179487,"Social Sciences","IND",0,2,76,2.81578947368421,214,38,0,0,274,0
-"learnhow",0,0,0,0,0,0,0.293834900731452,"Personal Development","IND",131,19,2812,2.10384068278805,5916,1075,10,11471,10027,0
-"lexical-semantic-typology",0,0,0,0,6,1,0.413173652694611,"Language Learning","IND",0,0,138,31.2028985507246,4306,127,90,86,852,0
-"management-informacionnoi-bezopasnosti",0,0,0,0,0,0,0.773529411764706,"Computer Science","IND",0,0,263,2.70342205323194,711,98,13,4,532,0
-"mathematics-for-economists",0,0,56,1,8,1,0.379487179487179,"Math and Logic","IND",0,0,148,30.7432432432432,4550,74,128,138,2184,1
-"metody-i-sredstva-zashity-informacii",0,0,0,0,0,0,0.631713554987212,"Computer Science","IND",0,17,247,5.23886639676113,1294,149,13,11,734,0
-"mobile-interaction-design",0,0,0,0,6,1,0.118959107806691,"Computer Science","IND",0,40,32,57.46875,1839,29,71,49,619,0
-"modular-forms-jacobi",0,0,1,1,12,1,0.134831460674157,"Math and Logic","IND",0,0,12,460.666666666667,5528,12,56,91,365,1
-"moscow-semantic-school",0,0,0,0,6,1,0.268292682926829,"Arts and Humanities","IND",0,3,11,72,792,10,22,4,212,0
-"organizational-practices-and-instruments",0,0,0,0,1,1,0.418918918918919,"Social Sciences","IND",0,1,93,8.36559139784946,778,63,14,24,288,0
-"osnovy-filosofii",0,0,0,0,4,1,0.267235079171742,"Arts and Humanities","IND",530,1,2194,6.03372835004558,13238,1446,62,3170,8941,0
-"otraslevye-rynki",0,0,63,1,0,0,0.1416015625,"Social Sciences","IND",0,0,145,14.0275862068966,2034,94,30,12,1144,1
-"practical-rl",14,1,73,1,0,0,0.28889464147036,"Data Science","SPEC",18,140,1116,150.148745519713,167566,1013,419,1158,5684,2
-"probability-theory-statistics",0,0,95,1,0,0,0.571093383388081,"Math and Logic","SPEC",0,64,1217,13.291700903862,16176,317,80,161,2347,1
-"psikhologiya-mejgruppovykh-otnoshenii",0,0,0,0,0,0,0.360453141091658,"Social Sciences","IND",0,0,350,2.41142857142857,844,131,21,8,1101,0
-"python-basic",69,1,0,0,1,1,0.570093457943925,"Computer Science","IND",2,2,61,185.803278688525,11334,61,45,185,169,1
-"python-osnovy-programmirovaniya",222,1,0,0,0,0,0.157585456071775,"Computer Science","IND",1,2536,6007,395.581155318795,2376256,5653,3081,6469,47061,1
-"rechevoj-etiket",0,0,0,0,19,1,0.13094083414161,"Arts and Humanities","IND",9,139,135,34.4,4644,107,72,174,1890,0
-"rus-business-law",0,0,0,0,4,1,0.447592067988669,"Social Sciences","IND",0,10,316,7.38924050632911,2335,207,26,22,849,0
-"sankt-peterburg-petr",0,0,0,0,7,1,0.28125,"Arts and Humanities","IND",0,5,18,61.6111111111111,1109,18,19,43,558,0
-"sliyaniye-pogloshcheniye",0,0,0,0,0,0,0.645892351274788,"Business","SPEC",0,0,228,7.83333333333333,1786,106,15,8,520,0
-"smart-analytics-education",0,0,0,0,1,1,0.314720812182741,"Social Sciences","IND",0,3,62,19.5322580645161,1211,51,7,3,294,0
-"sociologiya-media",0,0,0,0,0,0,0.573333333333333,"Social Sciences","IND",0,0,86,3.86046511627907,332,35,4,3,276,0
-"sozdanie-stoimosti-kompanii",0,0,5,1,6,1,1,"Business","SPEC",0,0,19,101.736842105263,1933,19,30,44,38,1
-"stalinism",0,0,0,0,11,1,0.312024353120244,"Arts and Humanities","IND",37,246,205,70.9024390243902,14535,171,200,464,1224,0
-"stochasticprocesses",0,0,375,1,0,0,0.647006255585344,"Math and Logic","IND",0,153,1448,17.3625690607735,25141,557,141,133,5030,1
-"upravlenie-stoimostju-kompanii",0,0,22,1,3,1,0.467889908256881,"Business","SPEC",0,6,51,50.2745098039216,2564,41,35,33,222,1
-"venchurnyj-kapital",0,0,0,0,1,1,0.457013574660633,"Business","SPEC",0,24,101,45.4752475247525,4593,77,53,65,400,0
-"vospitat-detei-pravilno",0,0,0,0,6,1,0.456081081081081,"Social Sciences","IND",2,76,135,32.4148148148148,4376,114,86,96,1218,0
-"vvedenie-mashinnoe-obuchenie",14,1,0,0,1,1,0.107936979050728,"Data Science","IND",0,90,4364,176.351054078827,769596,4204,1584,6306,45081,1
+"course_slug","is_prog_n","is_prog_b","is_math_n","is_math_b","is_peer_n","is_peer_b","passing_rate","course_name","field","spec_b","q_staff","ans_staff","student_n","student_vis_mean","vis_learner_p","vis_learner_b","q_learner","ans_learner","enrolled","enrolled_act","item_type"
+"algorithms-on-graphs",5,1,45,1,0,0,0.729577140223528,"Algorithms on Graphs","Computer Science","SPEC",53,847,6332,26.5780164245104,168292,4247,524,3578,8679,8628,2
+"algorithms-on-strings",3,1,177,1,0,0,0.689306053575195,"Algorithms on Strings","Computer Science","SPEC",60,490,3268,17.5887392900857,57480,2012,186,2417,4741,4452,2
+"authorschools",0,0,0,0,10,1,0.63013698630137,"Авторские школы","Social Sciences","IND",0,0,92,23.1195652173913,2127,82,39,31,146,146,0
+"calculus-and-optimization-for-machine-learning",0,0,416,1,1,1,0.612097304404997,"Calculus and Optimization for Machine Learning","Math and Logic","SPEC",92,56,931,23.8775510204082,22230,306,166,1504,1521,1353,1
+"combinatorics",46,1,129,1,0,0,0.426219634611524,"Combinatorics and Probability","Computer Science","SPEC",4,368,2123,35.789919924635,75982,1147,356,600,4981,4937,2
+"complex-variable",0,0,82,1,15,1,0.318181818181818,"Теория функций комплексного переменного","Physical Science and Engineering","IND",1,30,35,9.42857142857143,330,24,2,0,110,101,1
+"cultural-creative-industries",0,0,0,0,4,1,0.640822784810127,"Cultural and creative industries","Arts and Humanities","IND",0,0,405,3.2,1296,183,17,13,632,604,0
+"deep-learning-in-computer-vision",3,1,0,0,5,1,0.233991000346141,"Deep Learning in Computer Vision","Computer Science","SPEC",0,0,676,117.420118343195,79376,536,805,2127,2889,2113,1
+"delivery-problem",32,1,0,0,0,0,0.878627968337731,"Delivery Problem","Computer Science","SPEC",0,34,999,22.8618618618619,22839,525,73,102,1137,1133,1
+"digital-transformation-of-megapolises",0,0,0,0,2,1,0.517241379310345,"Digital transformation of megapolises: from zero to #1 in UN digital e-government ranking","Business","IND",0,0,90,30.4222222222222,2738,82,20,45,174,167,0
+"discrete-math-and-analyzing-social-graphs",1,1,46,1,0,0,2.84154929577465,"Discrete Math and Analyzing Social Graphs","Math and Logic","SPEC",1,116,1420,59.8227901787772,37962,792,150,385,4097,4035,2
+"ekonomicheskaya-sociologiya",0,0,0,0,0,0,0.552562761506276,"Экономическая социология","Social Sciences","IND",9323,32,2113,3.53005205868434,7459,910,22,11186,3824,3461,0
+"ekonomika-dlya-neekonomistov",0,0,0,0,2,1,0.13269113946021,"Экономика для неэкономистов (Economics for non-economists)","Social Sciences","IND",2,866,3058,12.914323086985,39492,1756,184,354,23046,18027,0
+"enumerative-combinatorics",0,0,59,1,2,1,0.163600525624179,"Introduction to Enumerative Combinatorics","Math and Logic","IND",9,66,249,116.610441767068,29036,223,126,253,1522,1452,1
+"financial-instruments-capstone",0,0,23,1,6,1,0.871794871794872,"Итоговый проект специализации """"Финансовые инструменты для частного инвестора""""","Business","SPEC",0,0,34,60.3235294117647,2051,29,44,48,39,36,1
+"findjob",0,0,0,0,0,0,0.965174129353234,"Как найти свою первую работу? Практический курс для студентов вузов","Personal Development","IND",0,0,388,1.35824742268041,527,114,2,1,402,388,0
+"first-steps-in-linear-algebra-for-machine-learning",2,1,69,1,0,0,0.605950653120464,"First Steps in Linear Algebra for Machine Learning","Math and Logic","SPEC",30,3,835,10.9293413173653,9126,448,60,315,1378,1219,2
+"formal-concept-analysis",0,0,14,1,0,0,0.0608044901777362,"Introduction to Formal Concept Analysis","Data Science","IND",0,144,65,98.5846153846154,6408,59,57,87,1069,718,1
+"general-relativity",0,0,10,1,12,1,0.273062730627306,"Introduction into General Theory of Relativity","Physical Science and Engineering","IND",25,752,222,209.328828828829,46471,183,490,526,813,772,1
+"hadron-collider-machine-learning",5,1,8,1,0,0,0.419249592169657,"Addressing Large Hadron Collider Challenges by Machine Learning","Computer Science","SPEC",0,28,257,65.8287937743191,16918,202,71,109,613,555,2
+"industrial-organization",0,0,0,0,0,0,0.343434343434343,"Industrial Organization: Strategy and Competition in Business","Business","IND",0,0,136,6.32352941176471,860,60,11,8,396,324,0
+"infrastruktura-rynka",0,0,0,0,0,0,0.671487603305785,"Инфраструктура рынка, методы и технологии инвестирования","Business","SPEC",0,0,325,9.36923076923077,3045,156,30,27,484,458,0
+"int-relations-history",0,0,0,0,0,0,0.786427145708583,"История международных отношений","Arts and Humanities","IND",0,0,394,1.50253807106599,592,147,5,4,501,492,0
+"international-relations-theory",0,0,0,0,4,1,0.320524835988754,"Understanding International Relations Theory","Social Sciences","IND",0,0,1026,23.864522417154,24485,708,859,1187,3201,3050,0
+"intro-to-deep-learning",10,1,113,1,0,0,0.188454627133872,"Introduction to Deep Learning","Data Science","SPEC",42,1245,4195,126.276519666269,529730,3887,2074,7576,22260,20454,2
+"intro-to-numerical-analysis",0,0,0,0,8,1,0.824811399832355,"Introduction to numerical analysis","Computer Science","IND",0,47,984,13.6371951219512,13419,731,163,214,1193,1183,0
+"investicii-akcii",0,0,0,0,0,0,0.240454914703493,"Инвестиции в акции","Business","SPEC",0,1,296,127.435810810811,37721,288,278,553,1231,912,0
+"klientskaya-basa-vkhodyaschii-marketing",0,0,0,0,0,0,0.776008492569002,"Работа с клиентской базой и входящий маркетинг","Business","SPEC",0,0,731,5.58139534883721,4080,284,15,36,942,895,0
+"language-processing",2,1,117,1,4,1,0.174502369668246,"Natural Language Processing","Data Science","SPEC",50,922,1841,135.645301466594,249723,1644,1409,4931,10550,9278,2
+"law-invest-ideas",0,0,0,0,0,0,0.484076433121019,"Юридическое оформление инвестиционных идей","Social Sciences","IND",0,2,76,2.81578947368421,214,38,0,0,157,146,0
+"learnhow",0,0,0,0,0,0,0.289102497126737,"Учимся учиться. Как преуспеть в школе, не тратя всё время на учёбу","Personal Development","IND",131,19,2767,2.11167329237441,5843,1057,70,11278,9571,9310,0
+"lexical-semantic-typology",0,0,0,0,6,1,0.401197604790419,"Towards language universals through lexical semantics: introduction to lexical and semantic typology","Language Learning","IND",0,0,134,31.9328358208955,4279,123,90,86,334,318,0
+"management-informacionnoi-bezopasnosti",0,0,0,0,0,0,0.770588235294118,"Менеджмент информационной безопасности","Computer Science","IND",0,0,262,2.64503816793893,693,97,13,4,340,319,0
+"mathematics-for-economists",0,0,56,1,8,1,0.379487179487179,"Mathematics for economists","Math and Logic","IND",0,0,148,30.7432432432432,4550,74,128,138,390,333,1
+"metody-i-sredstva-zashity-informacii",0,0,0,0,0,0,0.629156010230179,"Методы и средства защиты информации","Computer Science","IND",0,17,246,5.26016260162602,1294,149,13,11,391,370,0
+"mobile-interaction-design",0,0,0,0,6,1,0.118518518518519,"Mobile Interaction Design: How to Design Usable Mobile Products and Services","Computer Science","IND",0,40,32,57.46875,1839,29,71,49,270,232,0
+"modular-forms-jacobi",0,0,1,1,12,1,0.134831460674157,"Jacobi modular forms: 30 ans après","Math and Logic","IND",0,0,12,460.666666666667,5528,12,56,91,89,81,1
+"moscow-semantic-school",0,0,0,0,6,1,0.268292682926829,"Семантика (Московская семантическая школа и близкие теории)","Arts and Humanities","IND",0,3,11,72,792,10,22,4,41,38,0
+"organizational-practices-and-instruments",0,0,0,0,1,1,0.418918918918919,"Организационные практики и инструменты в работе лидера образовательной организации","Social Sciences","IND",0,1,93,8.36559139784946,778,63,14,24,222,185,0
+"osnovy-filosofii",0,0,0,0,4,1,0.263337393422655,"Основы философии: о чем спорят философы сегодня","Arts and Humanities","IND",530,1,2162,6.0536540240518,13088,1426,62,3129,8210,8008,0
+"otraslevye-rynki",0,0,63,1,0,0,0.1416015625,"Теория отраслевых рынков (Industrial Organization)","Social Sciences","IND",0,0,145,14.0275862068966,2034,94,30,12,1024,730,1
+"practical-rl",14,1,73,1,0,0,0.286675291073739,"Practical Reinforcement Learning","Data Science","SPEC",18,140,1108,150.695848375451,166971,1008,419,1155,3865,3745,2
+"probability-theory-statistics",0,0,95,1,0,0,0.563789868667917,"Probability Theory, Statistics and Exploratory Data Analysis","Math and Logic","SPEC",0,64,1202,13.2179700499168,15888,314,80,145,2132,2010,1
+"psikhologiya-mejgruppovykh-otnoshenii",0,0,0,0,0,0,0.356333676622039,"Психология межгрупповых отношений","Social Sciences","IND",0,0,346,2.41618497109827,836,130,21,8,971,821,0
+"python-osnovy-programmirovaniya",222,1,0,0,0,0,0.156400839454355,"Основы программирования на Python","Computer Science","IND",1,2536,5962,395.472156994297,2357805,5611,3063,6459,38120,37616,1
+"rechevoj-etiket",0,0,0,0,19,1,0.129970902036857,"Речевой этикет: вежливость и коммуникативные стратегии","Arts and Humanities","IND",9,139,134,32.9477611940299,4415,106,70,171,1031,718,0
+"rus-business-law",0,0,0,0,4,1,0.441926345609065,"Российское предпринимательское право","Social Sciences","IND",0,10,312,7.46474358974359,2329,205,26,22,706,688,0
+"sankt-peterburg-petr",0,0,0,0,7,1,0.28125,"Санкт-Петербург – столица империи Петра I","Arts and Humanities","IND",0,5,18,61.6111111111111,1109,18,19,43,64,59,0
+"sliyaniye-pogloshcheniye",0,0,0,0,0,0,0.645892351274788,"Инвестиционные проекты, слияния и поглощения","Business","SPEC",0,0,228,7.83333333333333,1786,106,15,8,353,343,0
+"smart-analytics-education",0,0,0,0,1,1,0.314720812182741,"Умная аналитика в управлении образованием","Social Sciences","IND",0,3,62,19.5322580645161,1211,51,7,3,197,159,0
+"sociologiya-media",0,0,0,0,0,0,0.573333333333333,"Социология медиа","Social Sciences","IND",0,0,86,3.86046511627907,332,35,4,3,150,140,0
+"sozdanie-stoimosti-kompanii",0,0,5,1,6,1,1,"Мастерство создания стоимости компании","Business","SPEC",0,0,19,101.736842105263,1933,19,30,44,19,19,1
+"stalinism",0,0,0,0,11,1,0.312024353120244,"Stalin and Stalinism in Russian History","Arts and Humanities","IND",37,246,205,70.9024390243902,14535,171,200,464,657,652,0
+"stochasticprocesses",0,0,375,1,0,0,0.646559428060768,"Stochastic processes","Math and Logic","IND",0,153,1447,17.3690393918452,25133,556,141,133,2238,2063,1
+"upravlenie-stoimostju-kompanii",0,0,22,1,3,1,0.467889908256881,"Управление стоимостью компании","Business","SPEC",0,6,51,50.2745098039216,2564,41,35,33,109,97,1
+"venchurnyj-kapital",0,0,0,0,1,1,0.447963800904977,"Венчурный капитал","Business","SPEC",0,24,99,46.010101010101,4555,76,53,65,221,206,0
+"vospitat-detei-pravilno",0,0,0,0,6,1,0.456081081081081,"Возможно ли воспитать детей «правильно»?","Social Sciences","IND",2,76,135,32.4148148148148,4376,114,86,96,296,287,0
+"vvedenie-mashinnoe-obuchenie",14,1,0,0,1,1,0.107714377581559,"Введение в машинное обучение","Data Science","IND",0,90,4355,176.419747416762,768308,4197,1582,6298,40431,36712,1
