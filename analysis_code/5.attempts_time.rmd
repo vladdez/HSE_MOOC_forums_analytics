@@ -40,7 +40,12 @@ remove_outliers <- function(x, na.rm = TRUE, ...) {
 
 ```{r}
 wd <- getwd()
-assignments <- fread("unzip -cq ../data/assignments.zip")  %>%  mutate(course_item_type_desc = factor(course_item_type_desc), vis_b = ifelse(vis_tw==0, 0, 1)) %>% group_by(course_item_id) %>% mutate(difficulty =  sum(first_attempt == 0) / n()) %>% ungroup()
+assignments <- fread("unzip -cq ../data/assignments.zip")  %>%  
+  mutate(course_item_type_desc = factor(course_item_type_desc), vis_b = ifelse(vis_tw==0, 0, 1)) %>% 
+  group_by(course_item_id) %>% 
+  mutate(difficulty =  sum(first_attempt == 0) / n()) %>% 
+  ungroup() 
+
 
 ```
 
@@ -75,7 +80,7 @@ assignments <- fread("unzip -cq ../data/assignments.zip")  %>%  mutate(course_it
 
 ####  Анализ распределения
 
-Для наглядности рассчитаем медиану медианных значений попыток по курсу для заданий по программированию и для тестов:
+Для наглядности рассчитаем медиану числа попыток по курсу для заданий по программированию и для тестов:
 
 Без учета вариации между курсами:
 
@@ -93,29 +98,10 @@ assignments %>% group_by(course_name, course_item_type_desc) %>% summarise(attem
 ```{r}
 summary(assignments$attempts)
 table(assignments$attempts)
-sum(table(assignments$attempts)[1:11]) / nrow(assignments)
-
 ```
  
-Округлим все значения больше 11, поскольку 99% студентов совершают от 0 до 11 попыток.
-
 ```{r}
-tw <- assignments %>% mutate(attempts = case_when(
-    attempts < 11 ~ attempts,
-    attempts >= 11 ~ as.integer(11)
-))
-table(tw$attempts, tw$course_item_type_desc)
-hist(tw$attempts)
-```
-
-Распределение попыток на всех курсах после округления:
-
-```{r}
-summary(tw$attempts)
-table(tw$attempts)
-```
-```{r}
-tw  %>% ggplot(aes(x = course_item_type_desc, y = attempts)) + geom_boxplot() + 
+assignments  %>% ggplot(aes(x = course_item_type_desc, y = attempts)) + geom_boxplot() + 
   geom_point() +
   scale_x_discrete(labels=c("Программирование", "Тест")) + stat_summary(fun.y = "median", color = "red",  size = 3, geom = "point") +
   labs(x = "Тип задания", y = "Число посещений") + ggtitle("Попытки за задание") + theme(plot.title = element_text(hjust = 0.5))
@@ -125,21 +111,21 @@ tw  %>% ggplot(aes(x = course_item_type_desc, y = attempts)) + geom_boxplot() +
 #### Тест Манна-Уитни
 
 ```{r}
-wilcox.test(attempts ~ course_item_type_desc, tw)
-tw %>% ungroup() %>% wilcox_effsize(attempts ~ course_item_type_desc)
+wilcox.test(attempts ~ course_item_type_desc, assignments)
+assignments %>% ungroup() %>% wilcox_effsize(attempts ~ course_item_type_desc)
 ```
 
 #### Анализ распределения
 
 ```{r}
 m0p <- glmer(attempts ~ 1 + (1|course_name), family = "poisson",
-            tw)
+            assignments)
 dispersion_glmer(m0p)
 ```
 
 ```{r}
 m0 <- glmer(attempts ~ 1 + (1|course_name), family = "poisson",
-            tw)
+            assignments)
 summary(m0)
 ```
 
@@ -161,9 +147,10 @@ cat(sprintf("Эта вероятность будет колебаться ме�
 
 ```{r}
 m1 <- glmer(attempts ~ course_item_type_desc + (1|course_name), family = "poisson",
-            tw)
+            assignments)
 summary(m1)
 ```
+
 ```{r, include=FALSE}
 sd <- as.numeric(data.frame(VarCorr(m1))[5])
 coef =  summary(m1)$coefficients
@@ -188,32 +175,27 @@ cat(sprintf("Количество попыток за задание по про
 ```{r}
 summary(assignments$assignment_time)
 ```
+```{r}
+tw <- assignments %>% filter(assignment_time < 116) # by 3d quantile
+```
 
 Без учета вариации между курсами:
 
 ```{r}
-assignments %>% group_by(course_item_type_desc) %>% summarise(assignment_time_vis_tw_median = median(assignment_time), assignment_time_vis_tw_mean = mean(assignment_time))
+tw %>% group_by(course_item_type_desc) %>% summarise(assignment_time_vis_tw_median = median(assignment_time), assignment_time_vis_tw_mean = mean(assignment_time))
 ```
 
 ```{r}
-wilcox.test(assignment_time ~ course_item_type_desc, assignments)
-assignments %>% ungroup() %>% wilcox_effsize(assignment_time ~ course_item_type_desc)
+wilcox.test(assignment_time ~ course_item_type_desc, tw)
+tw %>% ungroup() %>% wilcox_effsize(assignment_time ~ course_item_type_desc)
 ```
 
 ### 2.1 Анализ распределения
 
 ```{r}
-summary(assignments$assignment_time)
-sum(table(assignments$assignment_time)[1:144]) / nrow(assignments)
-
-```
-
-
-```{r}
-tw <- assignments %>% filter(assignment_time < 144)
-#table(tw$attempts, tw$course_item_type_desc)
-hist(tw$assignment_time)
 summary(tw$assignment_time)
+
+hist(tw$assignment_time, breaks = 100)
 ```
 
 
@@ -280,6 +262,7 @@ m1 <- glmer(difficulty ~ course_item_type_desc + (1|course_name), family = "bino
 summary(m1)
 
 ```
+
 ```{r, include=FALSE}
 sd <- as.numeric(data.frame(VarCorr(m1))[5])
 coef =  summary(m1)$coefficients
@@ -294,27 +277,4 @@ cat(sprintf("Сложность теста: %.2f.\n", round(invlogit(coef[1] + c
 cat(sprintf("Сложность задания по программированию больше теста в %.2f раз.\n", round(invlogit(coef[2]), digit = 2)))
 ```
 
-## 4. Проверка на мультиколлинеарность
-
-```{r}
-tw <- assignments %>% filter(assignment_time < 144)
-m1 <- glmer(vis_b ~ assignment_time + course_item_type_desc + (1|course_name), family = "binomial", tw)
-summary(m1)
-vif(m1)
-```
-```{r}
-tw <- assignments %>% mutate(attempts = case_when(
-    attempts < 11 ~ attempts,
-    attempts >= 11 ~ as.integer(11)
-))
-m1 <- glmer(vis_b ~ attempts + course_item_type_desc + (1|course_name), family = "binomial", tw)
-summary(m1)
-vif(m1)
-
-```
-```{r}
-m1 <- glmer(vis_b ~ difficulty + course_item_type_desc + (1|course_name), family = "binomial", assignments)
-summary(m1)
-vif(m1)
-```
 
