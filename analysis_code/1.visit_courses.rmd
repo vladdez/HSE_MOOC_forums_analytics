@@ -40,8 +40,7 @@ remove_outliers <- function(x, na.rm = TRUE, ...) {
 
 ```{r, include=FALSE}
 wd <- getwd()
-students <- fread("../data/students.csv") %>% group_by(course_id) %>%
-  mutate(vis_p = remove_outliers(vis_p))  
+students <- fread("../data/students.csv") %>% group_by(course_id) 
 students$vis_b <-factor(students$vis_b)
 students$spec_b <-factor(students$spec_b)
 
@@ -49,7 +48,7 @@ short <- students %>% distinct(course_slug, spec_b, field, is_prog_b)
 table(short$is_prog_b)
 
 courses <- fread("../data/courses.csv")%>%
-  mutate(passing_rate = passing_rate * 100, student_vis_rate = round(vis_learner_b/student_n, digits = 2), student_vis_mean = round(student_vis_mean, digits = 2))
+  mutate(passing_rate = passing_rate * 100, student_vis_mean = round(student_vis_mean, digits = 2))
 
 ```
 
@@ -74,9 +73,8 @@ courses <- fread("../data/courses.csv")%>%
 
 - **Метрики форума**
   - ***student_vis_mean*** - среднее посещение форума студентами на курсе;
-  - ***student_vis_rate*** - число студентов посетивших форум / число студентов на курсе;
   - ***vis_b*** - посещал форум или нет;
-  - ***vis_p*** - количество посещенных страниц форума;
+  - ***vis_p*** - количество посещенных страниц форума c удаленными выбросами;
   
 - **Тип курса.**     
   - ***spec_b*** - индивидуальный курс или курс из специализации;
@@ -104,17 +102,23 @@ courses <- fread("../data/courses.csv")%>%
 table(courses$is_prog_b)
 table(courses$spec_b)
 ```
+### Удаление выбросов
 
+```{r}
+hist(students$vis_p, breaks = 100)  
+```
+
+```{r}
+students <- students %>%
+  mutate(vis_p = remove_outliers(vis_p))  
+```
+```{r}
+hist(students$vis_p, breaks = 100)  
+```
 
 ## 2. Сколько студентов посещает форум и сколько страниц они посещают
 
 ### 2.1 Вероятность посещения форума студентом
-
-```{r}
-m00 <- glm(factor(vis_b) ~ 1,
-            family = binomial,
-            students)
-```
 
 ```{r}
 m0 <- glmer(factor(vis_b) ~ 1 + (1|course_id),
@@ -142,13 +146,8 @@ contrasts(students$vis_b)
 
 
 ```{r, echo=FALSE}
-
-t <- table(students$vis_b)
-v1 <- round((t[2]/(t[1] + t[2])), digits = 2)
-v2 <- round(invlogit(m00$coefficients[1]), digits = 2)
 c <- c(round(invlogit(coef - sd), digits = 2), round(invlogit(coef + sd), digits = 2))
 
-cat(sprintf("\n1) Вероятность посещения форума на среднем курсе равна %d%% (через формулу вероятности) и (через обратный логит интерсепта модели m00) %d%%.\n", v1 *100, v2 *100))
 cat(sprintf("\n2) Вероятность посещения форума на среднем курсе с учетом стандратного отклонения  равна %.f%% (через обратный логит интерсепта модели m0).\n", round(invlogit(coef), digits = 2) *100))
 cat(sprintf("Эта вероятность будет колебаться между: %d%% и %d%%.\n", c[1] *100, c[2] *100))
 cat(sprintf("Необъясненная дисперсия (variance): %f.\n", variance1))
@@ -281,12 +280,21 @@ cat(sprintf("Ожидаемое значение посещенных стран
 
 ## 4. Как на посещение форума влияет наличие на курсе заданий по программированию
 
+
+```{r}
+
+library(car)
+leveneTest(as.numeric(vis_b) ~ course_id, students)
+
+```
+
 ### 4.1 Влияние программирования на посещение форума студентом
 
 ```{r}
 m0 <- glmer(factor(vis_b) ~ is_prog_b + (1|course_id), family = "binomial",
             students)
 summary(m0)
+
 ```
 
 ```{r, include=FALSE}
@@ -302,12 +310,9 @@ c <- c(round(invlogit(coef[1] + coef[2] - sd), digits = 2), round(invlogit(coef[
 Результаты:
 
 ```{r , echo=FALSE}
-
-
-
 cat(sprintf("\nВероятность, посещения форума на курсе без программирования: %.f%%\n", round(invlogit(coef[1]), digit = 3)*100))
 cat(sprintf("Вероятность, посещения форума на курсе с программированием: %.f%%\n", round(invlogit(coef[1] + coef[2]), digits = 3)*100))
-cat(sprintf("Эта вероятность будет колебаться между: %d%% и %d%%.\n", c[1] *100, c[2] *100))
+cat(sprintf("Эта вероятность будет колебаться между: %.2f%% и %.2f%%.\n", c[1] *100, c[2] *100))
 ```
 
 ### 4.2 Влияние программирования на количество страниц посещенных студентом

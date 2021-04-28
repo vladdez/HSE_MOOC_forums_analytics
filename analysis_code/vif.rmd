@@ -1,0 +1,97 @@
+---
+title: "Variance inflation factor"
+output:
+  html_document:
+    code_download: yes
+    fontsize: 8pt
+    highlight: textmate
+    number_sections: no
+    theme: flatly
+    toc: yes
+    toc_float:
+      collapsed: no
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+library(dplyr)
+library(data.table)
+library(lme4)
+library(broom)
+library(ggplot2)
+library(tidyr)
+library(arm)
+library(car)
+library(rstatix)
+library(ggpubr)
+
+remove_outliers <- function(x, na.rm = TRUE, ...) {
+  qnt <- quantile(x, probs=c(.25, .75), na.rm = na.rm, ...)
+  H <- 1.5 * IQR(x, na.rm = na.rm)
+  y <- x
+  y[x < (qnt[1] - H)] <- NA
+  y[x > (qnt[2] + H)] <- NA
+  y
+}
+
+```
+
+```{r, include=FALSE}
+wd <- getwd()
+
+courses <- fread("../data/courses.csv") %>%
+  mutate(visit_rate = round(vis_learner_b/ student_n, digits = 2), passing_rate = round(passing_rate, digits = 2)) 
+
+students <- fread("../data/students.csv") %>%  mutate(duration = remove_outliers(duration))  
+students$vis_b <- factor(students$vis_b)
+
+assignments <- fread("unzip -cq ../data/assignments.zip")  %>%  
+  mutate(course_item_type_desc = factor(course_item_type_desc), vis_b = ifelse(vis_tw==0, 0, 1)) %>% 
+  group_by(course_item_id) %>% 
+  mutate(difficulty =  sum(first_attempt == 0) / n()) %>% 
+  ungroup() 
+tw <- assignments %>% filter(assignment_time < 116) 
+```
+
+## 1. Влияние типа курса и выживаемости на посещение форума
+
+```{r}
+m1 <-  lm(visit_rate ~ passing_rate + is_prog_b , courses)
+summary(m1)
+vif(m1)
+```
+
+
+## 2. Влияние длительности и выживаемости на посещение форума
+
+```{r}
+m1 <- glm.nb(duration ~ vis_b + factor(is_prog_b), students)
+summary(m1)
+vif(m1)
+```
+
+## 3. Влияние типа задания и времени взаимодействия с заданием на посещение форума
+
+```{r}
+m1 <- glmer(vis_b ~ assignment_time + course_item_type_desc + (1|course_item_name), family = "binomial", tw)
+summary(m1)
+vif(m1)
+```
+
+## 4. Влияние типа задания и числа попыток на посещение форума
+
+```{r}
+m1 <- glmer(vis_b ~ attempts + course_item_type_desc + (1|course_item_name), family = "binomial", assignments)
+summary(m1)
+vif(m1)
+```
+
+## 5. Влияние типа задания и сложности на посещение форума
+
+```{r}
+m1 <- glmer(vis_b ~ difficulty + course_item_type_desc + (1|course_item_name), family = "binomial", assignments)
+summary(m1)
+vif(m1)
+```
+

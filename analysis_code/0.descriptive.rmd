@@ -51,6 +51,14 @@ courses <- fread("../data/courses.csv")%>%
 
 ```
 
+## 1. Descriptive statistics
+
+Number of courses:
+
+```{r}
+nrow(courses)
+```
+
 Number of students enrolled:
 
 ```{r}
@@ -64,25 +72,52 @@ pass <- sum(courses$student_n)
 pass
 ```
 
-Number of passed students on the least and the most popular courses
+
+Number of courses with programming assignments and not:
 
 ```{r}
-min(courses$student_n)
-max(courses$student_n)
+table(courses$is_prog_b)
+```
+
+Number of courses within specialization and not:
+
+```{r}
+table(courses$spec_b)
+```
+
+Number of courses on Russian and English:
+
+```{r}
+e <-sum(grepl('^[^\x20-\x7F]', courses$course_name))
+c(e, nrow(courses) -e)
+```
+
+Number of finished programming assignments and quizzes:
+
+```{r}
+table(assignments$course_item_type_desc)
 ```
 
 Number of programming assignments and quizzes:
 
 ```{r}
-table(assignments$course_item_type_desc)
+assignments %>% distinct(course_item_id, .keep_all=TRUE) %>% group_by(course_item_type_desc) %>% summarize(n = n())
 ```
-Number of posts on forum:
+
+Status of first attempt for programming assignments and quizzes:
+
+```{r}
+table(assignments$first_attempt)
+```
+
+
+Number of questions and anwers on forum:
 
 ```{r}
 sum(courses$q_learner)
-sum(students$q_n)
+#sum(students$q_n)
 sum(courses$ans_learner)
-sum(students$ans_n)
+#sum(students$ans_n)
 ```
 
 Number of students posted anything on forum:
@@ -96,7 +131,7 @@ a
 t
 ```
 
-Rate of students posted anything on forum:
+Proportion of students posted anything on forum:
 
 ```{r}
 round(q / pass, digits = 2)
@@ -116,25 +151,53 @@ The proportion of students visited forum:
 ```{r}
 round(v / pass, digits = 2)
 ```
+The proportion of students posted anything among those who visited a forum:
+
 ```{r}
 round(v / pass, digits = 2) / round(t / pass, digits = 2) 
 ```
-Number of courses with programming assignments and not:
+
+## 2. To check
+Number of passed students on the least and the most popular courses
 
 ```{r}
-table(courses$is_prog_b)
+min(courses$student_n)
+max(courses$student_n)
 ```
-
-Number of courses within specialization and not:
 
 ```{r}
-table(courses$spec_b)
+hist(courses$student_n, breaks = 60)
+table(courses$student_n)
+summary(courses$student_n)
 ```
 
-Status of first attempt for programming assignments and quizzes:
+Number of programming assignments in programming courses:
 
 ```{r}
-table(assignments$first_attempt)
+#  и еще число всех заданий
+a <- courses %>% dplyr::select(is_prog_n, course_slug) %>% group_by(course_slug) %>% 
+  summarize(prog_n_courses = sum(is_prog_n, na.rm = TRUE)) %>%  filter(prog_n_courses != 0) %>% arrange(course_slug) 
+b <- assignments %>% group_by(course_name) %>% dplyr::select(course_item_type_desc, course_item_name) %>% rename(course_slug = course_name)   %>% 
+    filter(course_item_type_desc == "programming") %>% summarize(prog_n_ass = n_distinct(course_item_name)) %>% arrange(course_slug)
+q <- assignments %>% group_by(course_name) %>% dplyr::select(course_item_type_desc, course_item_name) %>% rename(course_slug = course_name)   %>% 
+    filter(course_item_type_desc == "quiz") %>% summarize(quiz_n_ass = n_distinct(course_item_name)) %>% arrange(course_slug)
 ```
 
+```{r}
+#  разница возникает из-за того что во assignments  - только оцениваемые задания. 
+d <- left_join(a, b)
+left_join(d, q)
+```
+
+```{r}
+# assignments %>% filter(course_name == "python-osnovy-programmirovaniya") %>% dplyr::select(course_item_name, course_item_type_desc) %>%  group_by(course_item_name) %>% slice(1) #%>% nrow()
+```
+
+
+List of all courses for Appendix:
+
+```{r}
+slugs <- data_frame(courses$course_name, courses$course_slug, courses$student_n)
+write.csv(slugs, file=paste("/home/vovan/Desktop/data/slugs.csv", sep = ""), row.names = FALSE)
+```
 
