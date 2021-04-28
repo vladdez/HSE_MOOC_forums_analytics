@@ -38,10 +38,9 @@ remove_outliers <- function(x, na.rm = TRUE, ...) {
 
 ```{r, include=FALSE}
 wd <- getwd()
-students <- fread("../data/students.csv") %>% filter(duration < 400)
+students <- fread("../data/students.csv") %>%  mutate(duration = remove_outliers(duration))  
 
-students$vis_b <-factor(students$vis_b)
-
+students$vis_b <- factor(students$vis_b)
 ```
 
 
@@ -60,11 +59,12 @@ students$vis_b <-factor(students$vis_b)
 ## 1.  Дисперсия длительности
 
 ```{r}
-students %>% summarise(mean = mean(duration), variance = var(duration))
+students %>% summarise(mean = mean(duration, na.rm = TRUE), variance = var(duration, na.rm = TRUE))
 ```
 
 ```{r}
 hist(students$duration)
+max(students$duration,  na.rm = TRUE)
 ```
 
 ```{r}
@@ -141,11 +141,4 @@ students %>%
   ggplot(aes(y = duration, x = vis_b)) + geom_point() +  geom_boxplot() + ggtitle("Влияние посещения форума на длительность прохождения курса") + labs(x="Посещал форум или нет", y = "Дни") +  theme(plot.title = element_text(hjust = 0.5))
 ```
 
-## 4. Влияние длительности и выживаемости на посещение форума
-
-```{r}
-m1 <- glm.nb(duration ~ vis_b + factor(is_prog_b), students)
-summary(m1)
-vif(m1)
-```
 

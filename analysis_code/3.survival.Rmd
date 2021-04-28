@@ -41,7 +41,7 @@ remove_outliers <- function(x, na.rm = TRUE, ...) {
 wd <- getwd()
 
 courses <- fread("../data/courses.csv") %>%
-  mutate(visit_rate = round(vis_learner_b/ student_n, digits = 2), passing_rate = round(passing_rate, digits = 2))
+  mutate(visit_rate = round(vis_learner_b/ student_n, digits = 2), passing_rate = round(passing_rate, digits = 2)) 
 
 
 ```
@@ -73,7 +73,7 @@ courses <- fread("../data/courses.csv") %>%
   - ***forum_rate*** - количество студентов заглянувших на форум / количество студентов на курсе.
 
 - **Метрика выживаемости**
-  - ***passing_rate*** - прошедшие курс / записавшиеся на курс.
+  - ***passing_rate*** - прошедшие курс / записавшиеся на курс и выполнившие хотя бы одно задание.
 
 ### Как создавались бинарные переменные типов заданий
  - К сожалению, не всегда удается автоматически определить какие на курсе задания, а потому приходится использовать разнообразные признаки для их кодирования.
@@ -93,6 +93,8 @@ courses <- fread("../data/courses.csv") %>%
 
 Распределение переменных модели:
 
+
+
 ```{r}
 hist(courses$passing_rate)
 hist(courses$visit_rate)
@@ -106,11 +108,11 @@ hist(courses$visit_rate)
 m1 <-  lm(visit_rate ~ passing_rate, courses)
 summary(m1)
 ```
-Чтобы получить данное значение мы нашли разницу между интерсептом и интерсепт + угол наклона, а полученное значение экспоненциировали:
+Чтобы получить данное значение мы нашли разницу между интерсептом и интерсепт + угол наклона:
 
 ```{r, echo=FALSE}
 
-cat(sprintf("Изменение на 1 пункт в выживаемости курса изменяет на %.3f пунктов среднее количество посещений форума.\n", m1$coefficients[2]))
+cat(sprintf("Изменение на 1 пункт в выживаемости курса изменяет на %.2f пунктов среднее количество посещений форума.\n", m1$coefficients[2]))
 cat(sprintf("Это изменение значимо с p = %.3f", summary(m1)$coefficients[8]))
 ```
 Визуализация 
@@ -150,13 +152,7 @@ courses %>%
   ggplot(aes(y = passing_rate, x = factor(is_prog_b))) + geom_boxplot() 
 ```
 
-## 4. Влияние типа курса и выживаеммости на посещение форума
 
-```{r}
-m1 <-  lm(visit_rate ~ passing_rate + is_prog_b , courses)
-summary(m1)
-vif(m1)
-```
 
 ## Выводы
 

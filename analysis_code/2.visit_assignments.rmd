@@ -53,7 +53,7 @@ remove_outliers <- function(x, na.rm = TRUE, ...) {
 
 ```{r}
 wd <- getwd()
-assignments <- fread("unzip -cq ../data/assignments.zip") %>% mutate(vis_tw_b = ifelse(vis_tw==0, 0, 1), vis_before_attempt_tw_b = ifelse(vis_before_attempt_tw==0, 0, 1),) %>% group_by(course_name)   %>% mutate(course_item_type_desc = factor(course_item_type_desc)) %>% ungroup()
+assignments <- fread("unzip -cq ../data/assignments.zip") %>% mutate(vis_tw_b = ifelse(vis_tw==0, 0, 1), vis_before_attempt_tw_b = ifelse(vis_before_attempt_tw==0, 0, 1)) %>%  mutate(course_item_type_desc = factor(course_item_type_desc)) 
 ```
 
 
@@ -213,6 +213,7 @@ cat(sprintf("Количество посещенных страниц на ку�
 cat(sprintf("Это количество будет колебаться между: %.2f и %.2f.\n", c[1], c[2] ))
 ```
 
+<!--
 ## 3. Сравнение средних посещенных страниц
 
 <span style="color:green">**Differ!**</span>
@@ -227,10 +228,7 @@ sum(table(assignments$vis_tw)[1:45]) / nrow(assignments)
 
 
 ```{r}
-tw <- assignments %>% mutate(attempts = case_when(
-    vis_tw < 45 ~ vis_tw,
-    vis_tw >= 45 ~ as.integer(45)
-))
+tw <- assignments 
 
 tw  %>%  group_by(course_name, course_item_type_desc) %>% summarise(vis_tw_mean = round(mean(vis_tw), digits = 1), vis_tw_median = round(median(vis_tw), digits = 1)) %>% group_by(course_item_type_desc) %>% summarise(vis_tw_mean = round(mean(vis_tw_mean), digits = 1), vis_tw_median = round(median(vis_tw_median), digits = 1))
 
@@ -327,3 +325,4 @@ tw  %>% ggplot(aes(x = course_item_type_desc, y = rate)) + geom_boxplot() + geom
 wilcox.test(rate ~ course_item_type_desc, tw)
 tw %>% ungroup() %>% wilcox_effsize(rate ~ course_item_type_desc)
 ```
+-->
