@@ -8,6 +8,8 @@
 
   0. **descriptive**
       - важные статистики;
+  1. **vif**
+      -  varianc inflation factor for different models;
 
 ### Что влияет на посещение форума?
 
