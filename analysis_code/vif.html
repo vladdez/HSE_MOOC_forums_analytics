@@ -1659,42 +1659,36 @@ summary(m1)</code></pre>
 </div>
 <div id="влияние-длительности-и-выживаемости-на-посещение-форума" class="section level2">
 <h2>2. Влияние длительности и выживаемости на посещение форума</h2>
-<pre class="r"><code>m1 &lt;- glm.nb(duration ~ vis_b + factor(is_prog_b), students)
+<pre class="r"><code>m1 &lt;- glm(vis_b  ~ duration + factor(is_prog_b),  family = &quot;binomial&quot;, students)
 summary(m1)</code></pre>
 <pre><code>## 
 ## Call:
-## glm.nb(formula = duration ~ vis_b + factor(is_prog_b), data = students, 
-##     init.theta = 0.9586623846, link = log)
+## glm(formula = vis_b ~ duration + factor(is_prog_b), family = &quot;binomial&quot;, 
+##     data = students)
 ## 
 ## Deviance Residuals: 
 ##     Min       1Q   Median       3Q      Max  
-## -2.8106  -0.9863  -0.1927   0.3537   2.3552  
+## -2.5676  -1.0011   0.6353   0.8547   1.4587  
 ## 
 ## Coefficients:
-##                     Estimate Std. Error z value Pr(&gt;|z|)    
-## (Intercept)         3.568259   0.008846  403.35   &lt;2e-16 ***
-## vis_b1              0.493229   0.010131   48.69   &lt;2e-16 ***
-## factor(is_prog_b)1 -0.142324   0.009698  -14.68   &lt;2e-16 ***
+##                      Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept)        -0.6406292  0.0194098  -33.01   &lt;2e-16 ***
+## duration            0.0150480  0.0002959   50.86   &lt;2e-16 ***
+## factor(is_prog_b)1  1.2656607  0.0203815   62.10   &lt;2e-16 ***
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## (Dispersion parameter for Negative Binomial(0.9587) family taken to be 1)
+## (Dispersion parameter for binomial family taken to be 1)
 ## 
-##     Null deviance: 61934  on 50644  degrees of freedom
-## Residual deviance: 59746  on 50642  degrees of freedom
+##     Null deviance: 64539  on 50644  degrees of freedom
+## Residual deviance: 57721  on 50642  degrees of freedom
 ##   (4732 observations deleted due to missingness)
-## AIC: 488578
+## AIC: 57727
 ## 
-## Number of Fisher Scoring iterations: 1
-## 
-## 
-##               Theta:  0.95866 
-##           Std. Err.:  0.00589 
-## 
-##  2 x log-likelihood:  -488570.29400</code></pre>
+## Number of Fisher Scoring iterations: 4</code></pre>
 <pre class="r"><code>vif(m1)</code></pre>
-<pre><code>##             vis_b factor(is_prog_b) 
-##          1.081633          1.081633</code></pre>
+<pre><code>##          duration factor(is_prog_b) 
+##          1.017475          1.017475</code></pre>
 </div>
 <div id="влияние-типа-задания-и-времени-взаимодействия-с-заданием-на-посещение-форума" class="section level2">
 <h2>3. Влияние типа задания и времени взаимодействия с заданием на посещение форума</h2>
@@ -1820,7 +1814,7 @@ summary(m1)</code></pre>
 ##              1.001623              1.001623</code></pre>
 </div>
 
-<div id="rmd-source-code">LS0tCnRpdGxlOiAiVmFyaWFuY2UgaW5mbGF0aW9uIGZhY3RvciIKb3V0cHV0OgogIGh0bWxfZG9jdW1lbnQ6CiAgICBjb2RlX2Rvd25sb2FkOiB5ZXMKICAgIGZvbnRzaXplOiA4cHQKICAgIGhpZ2hsaWdodDogdGV4dG1hdGUKICAgIG51bWJlcl9zZWN0aW9uczogbm8KICAgIHRoZW1lOiBmbGF0bHkKICAgIHRvYzogeWVzCiAgICB0b2NfZmxvYXQ6CiAgICAgIGNvbGxhcHNlZDogbm8KLS0tCgoKYGBge3Igc2V0dXAsIGluY2x1ZGU9RkFMU0V9CmtuaXRyOjpvcHRzX2NodW5rJHNldCh3YXJuaW5nID0gRkFMU0UsIG1lc3NhZ2UgPSBGQUxTRSkKbGlicmFyeShkcGx5cikKbGlicmFyeShkYXRhLnRhYmxlKQpsaWJyYXJ5KGxtZTQpCmxpYnJhcnkoYnJvb20pCmxpYnJhcnkoZ2dwbG90MikKbGlicmFyeSh0aWR5cikKbGlicmFyeShhcm0pCmxpYnJhcnkoY2FyKQpsaWJyYXJ5KHJzdGF0aXgpCmxpYnJhcnkoZ2dwdWJyKQoKcmVtb3ZlX291dGxpZXJzIDwtIGZ1bmN0aW9uKHgsIG5hLnJtID0gVFJVRSwgLi4uKSB7CiAgcW50IDwtIHF1YW50aWxlKHgsIHByb2JzPWMoLjI1LCAuNzUpLCBuYS5ybSA9IG5hLnJtLCAuLi4pCiAgSCA8LSAxLjUgKiBJUVIoeCwgbmEucm0gPSBuYS5ybSkKICB5IDwtIHgKICB5W3ggPCAocW50WzFdIC0gSCldIDwtIE5BCiAgeVt4ID4gKHFudFsyXSArIEgpXSA8LSBOQQogIHkKfQoKYGBgCgpgYGB7ciwgaW5jbHVkZT1GQUxTRX0Kd2QgPC0gZ2V0d2QoKQoKY291cnNlcyA8LSBmcmVhZCgiLi4vZGF0YS9jb3Vyc2VzLmNzdiIpICU+JQogIG11dGF0ZSh2aXNpdF9yYXRlID0gcm91bmQodmlzX2xlYXJuZXJfYi8gc3R1ZGVudF9uLCBkaWdpdHMgPSAyKSwgcGFzc2luZ19yYXRlID0gcm91bmQocGFzc2luZ19yYXRlLCBkaWdpdHMgPSAyKSkgCgpzdHVkZW50cyA8LSBmcmVhZCgiLi4vZGF0YS9zdHVkZW50cy5jc3YiKSAlPiUgIG11dGF0ZShkdXJhdGlvbiA9IHJlbW92ZV9vdXRsaWVycyhkdXJhdGlvbikpICAKc3R1ZGVudHMkdmlzX2IgPC0gZmFjdG9yKHN0dWRlbnRzJHZpc19iKQoKYXNzaWdubWVudHMgPC0gZnJlYWQoInVuemlwIC1jcSAuLi9kYXRhL2Fzc2lnbm1lbnRzLnppcCIpICAlPiUgIAogIG11dGF0ZShjb3Vyc2VfaXRlbV90eXBlX2Rlc2MgPSBmYWN0b3IoY291cnNlX2l0ZW1fdHlwZV9kZXNjKSwgdmlzX2IgPSBpZmVsc2UodmlzX3R3PT0wLCAwLCAxKSkgJT4lIAogIGdyb3VwX2J5KGNvdXJzZV9pdGVtX2lkKSAlPiUgCiAgbXV0YXRlKGRpZmZpY3VsdHkgPSAgc3VtKGZpcnN0X2F0dGVtcHQgPT0gMCkgLyBuKCkpICU+JSAKICB1bmdyb3VwKCkgCnR3IDwtIGFzc2lnbm1lbnRzICU+JSBmaWx0ZXIoYXNzaWdubWVudF90aW1lIDwgMTE2KSAKYGBgCgojIyAxLiDQktC70LjRj9C90LjQtSDRgtC40L/QsCDQutGD0YDRgdCwINC4INCy0YvQttC40LLQsNC10LzQvtGB0YLQuCDQvdCwINC/0L7RgdC10YnQtdC90LjQtSDRhNC+0YDRg9C80LAKCmBgYHtyfQptMSA8LSAgbG0odmlzaXRfcmF0ZSB+IHBhc3NpbmdfcmF0ZSArIGlzX3Byb2dfYiAsIGNvdXJzZXMpCnN1bW1hcnkobTEpCnZpZihtMSkKYGBgCgoKIyMgMi4g0JLQu9C40Y/QvdC40LUg0LTQu9C40YLQtdC70YzQvdC+0YHRgtC4INC4INCy0YvQttC40LLQsNC10LzQvtGB0YLQuCDQvdCwINC/0L7RgdC10YnQtdC90LjQtSDRhNC+0YDRg9C80LAKCmBgYHtyfQptMSA8LSBnbG0ubmIoZHVyYXRpb24gfiB2aXNfYiArIGZhY3Rvcihpc19wcm9nX2IpLCBzdHVkZW50cykKc3VtbWFyeShtMSkKdmlmKG0xKQpgYGAKCiMjIDMuINCS0LvQuNGP0L3QuNC1INGC0LjQv9CwINC30LDQtNCw0L3QuNGPINC4INCy0YDQtdC80LXQvdC4INCy0LfQsNC40LzQvtC00LXQudGB0YLQstC40Y8g0YEg0LfQsNC00LDQvdC40LXQvCDQvdCwINC/0L7RgdC10YnQtdC90LjQtSDRhNC+0YDRg9C80LAKCmBgYHtyfQptMSA8LSBnbG1lcih2aXNfYiB+IGFzc2lnbm1lbnRfdGltZSArIGNvdXJzZV9pdGVtX3R5cGVfZGVzYyArICgxfGNvdXJzZV9pdGVtX25hbWUpLCBmYW1pbHkgPSAiYmlub21pYWwiLCB0dykKc3VtbWFyeShtMSkKdmlmKG0xKQpgYGAKCiMjIDQuINCS0LvQuNGP0L3QuNC1INGC0LjQv9CwINC30LDQtNCw0L3QuNGPINC4INGH0LjRgdC70LAg0L/QvtC/0YvRgtC+0Log0L3QsCDQv9C+0YHQtdGJ0LXQvdC40LUg0YTQvtGA0YPQvNCwCgpgYGB7cn0KbTEgPC0gZ2xtZXIodmlzX2IgfiBhdHRlbXB0cyArIGNvdXJzZV9pdGVtX3R5cGVfZGVzYyArICgxfGNvdXJzZV9pdGVtX25hbWUpLCBmYW1pbHkgPSAiYmlub21pYWwiLCBhc3NpZ25tZW50cykKc3VtbWFyeShtMSkKdmlmKG0xKQpgYGAKCiMjIDUuINCS0LvQuNGP0L3QuNC1INGC0LjQv9CwINC30LDQtNCw0L3QuNGPINC4INGB0LvQvtC20L3QvtGB0YLQuCDQvdCwINC/0L7RgdC10YnQtdC90LjQtSDRhNC+0YDRg9C80LAKCmBgYHtyfQptMSA8LSBnbG1lcih2aXNfYiB+IGRpZmZpY3VsdHkgKyBjb3Vyc2VfaXRlbV90eXBlX2Rlc2MgKyAoMXxjb3Vyc2VfaXRlbV9uYW1lKSwgZmFtaWx5ID0gImJpbm9taWFsIiwgYXNzaWdubWVudHMpCnN1bW1hcnkobTEpCnZpZihtMSkKYGBgCgo=</div>
+<div id="rmd-source-code">LS0tCnRpdGxlOiAiVmFyaWFuY2UgaW5mbGF0aW9uIGZhY3RvciIKb3V0cHV0OgogIGh0bWxfZG9jdW1lbnQ6CiAgICBjb2RlX2Rvd25sb2FkOiB5ZXMKICAgIGZvbnRzaXplOiA4cHQKICAgIGhpZ2hsaWdodDogdGV4dG1hdGUKICAgIG51bWJlcl9zZWN0aW9uczogbm8KICAgIHRoZW1lOiBmbGF0bHkKICAgIHRvYzogeWVzCiAgICB0b2NfZmxvYXQ6CiAgICAgIGNvbGxhcHNlZDogbm8KLS0tCgoKYGBge3Igc2V0dXAsIGluY2x1ZGU9RkFMU0V9CmtuaXRyOjpvcHRzX2NodW5rJHNldCh3YXJuaW5nID0gRkFMU0UsIG1lc3NhZ2UgPSBGQUxTRSkKbGlicmFyeShkcGx5cikKbGlicmFyeShkYXRhLnRhYmxlKQpsaWJyYXJ5KGxtZTQpCmxpYnJhcnkoYnJvb20pCmxpYnJhcnkoZ2dwbG90MikKbGlicmFyeSh0aWR5cikKbGlicmFyeShhcm0pCmxpYnJhcnkoY2FyKQpsaWJyYXJ5KHJzdGF0aXgpCmxpYnJhcnkoZ2dwdWJyKQoKcmVtb3ZlX291dGxpZXJzIDwtIGZ1bmN0aW9uKHgsIG5hLnJtID0gVFJVRSwgLi4uKSB7CiAgcW50IDwtIHF1YW50aWxlKHgsIHByb2JzPWMoLjI1LCAuNzUpLCBuYS5ybSA9IG5hLnJtLCAuLi4pCiAgSCA8LSAxLjUgKiBJUVIoeCwgbmEucm0gPSBuYS5ybSkKICB5IDwtIHgKICB5W3ggPCAocW50WzFdIC0gSCldIDwtIE5BCiAgeVt4ID4gKHFudFsyXSArIEgpXSA8LSBOQQogIHkKfQoKYGBgCgpgYGB7ciwgaW5jbHVkZT1GQUxTRX0Kd2QgPC0gZ2V0d2QoKQoKY291cnNlcyA8LSBmcmVhZCgiLi4vZGF0YS9jb3Vyc2VzLmNzdiIpICU+JQogIG11dGF0ZSh2aXNpdF9yYXRlID0gcm91bmQodmlzX2xlYXJuZXJfYi8gc3R1ZGVudF9uLCBkaWdpdHMgPSAyKSwgcGFzc2luZ19yYXRlID0gcm91bmQocGFzc2luZ19yYXRlLCBkaWdpdHMgPSAyKSkgCgpzdHVkZW50cyA8LSBmcmVhZCgiLi4vZGF0YS9zdHVkZW50cy5jc3YiKSAlPiUgIG11dGF0ZShkdXJhdGlvbiA9IHJlbW92ZV9vdXRsaWVycyhkdXJhdGlvbikpICAKc3R1ZGVudHMkdmlzX2IgPC0gZmFjdG9yKHN0dWRlbnRzJHZpc19iKQoKYXNzaWdubWVudHMgPC0gZnJlYWQoInVuemlwIC1jcSAuLi9kYXRhL2Fzc2lnbm1lbnRzLnppcCIpICAlPiUgIAogIG11dGF0ZShjb3Vyc2VfaXRlbV90eXBlX2Rlc2MgPSBmYWN0b3IoY291cnNlX2l0ZW1fdHlwZV9kZXNjKSwgdmlzX2IgPSBpZmVsc2UodmlzX3R3PT0wLCAwLCAxKSkgJT4lIAogIGdyb3VwX2J5KGNvdXJzZV9pdGVtX2lkKSAlPiUgCiAgbXV0YXRlKGRpZmZpY3VsdHkgPSAgc3VtKGZpcnN0X2F0dGVtcHQgPT0gMCkgLyBuKCkpICU+JSAKICB1bmdyb3VwKCkgCnR3IDwtIGFzc2lnbm1lbnRzICU+JSBmaWx0ZXIoYXNzaWdubWVudF90aW1lIDwgMTE2KSAKYGBgCgojIyAxLiDQktC70LjRj9C90LjQtSDRgtC40L/QsCDQutGD0YDRgdCwINC4INCy0YvQttC40LLQsNC10LzQvtGB0YLQuCDQvdCwINC/0L7RgdC10YnQtdC90LjQtSDRhNC+0YDRg9C80LAKCmBgYHtyfQptMSA8LSAgbG0odmlzaXRfcmF0ZSB+IHBhc3NpbmdfcmF0ZSArIGlzX3Byb2dfYiAsIGNvdXJzZXMpCnN1bW1hcnkobTEpCnZpZihtMSkKYGBgCgoKIyMgMi4g0JLQu9C40Y/QvdC40LUg0LTQu9C40YLQtdC70YzQvdC+0YHRgtC4INC4INCy0YvQttC40LLQsNC10LzQvtGB0YLQuCDQvdCwINC/0L7RgdC10YnQtdC90LjQtSDRhNC+0YDRg9C80LAKCmBgYHtyfQptMSA8LSBnbG0odmlzX2IgIH4gZHVyYXRpb24gKyBmYWN0b3IoaXNfcHJvZ19iKSwgIGZhbWlseSA9ICJiaW5vbWlhbCIsIHN0dWRlbnRzKQpzdW1tYXJ5KG0xKQp2aWYobTEpCmBgYAoKIyMgMy4g0JLQu9C40Y/QvdC40LUg0YLQuNC/0LAg0LfQsNC00LDQvdC40Y8g0Lgg0LLRgNC10LzQtdC90Lgg0LLQt9Cw0LjQvNC+0LTQtdC50YHRgtCy0LjRjyDRgSDQt9Cw0LTQsNC90LjQtdC8INC90LAg0L/QvtGB0LXRidC10L3QuNC1INGE0L7RgNGD0LzQsAoKYGBge3J9Cm0xIDwtIGdsbWVyKHZpc19iIH4gYXNzaWdubWVudF90aW1lICsgY291cnNlX2l0ZW1fdHlwZV9kZXNjICsgKDF8Y291cnNlX2l0ZW1fbmFtZSksIGZhbWlseSA9ICJiaW5vbWlhbCIsIHR3KQpzdW1tYXJ5KG0xKQp2aWYobTEpCmBgYAoKIyMgNC4g0JLQu9C40Y/QvdC40LUg0YLQuNC/0LAg0LfQsNC00LDQvdC40Y8g0Lgg0YfQuNGB0LvQsCDQv9C+0L/Ri9GC0L7QuiDQvdCwINC/0L7RgdC10YnQtdC90LjQtSDRhNC+0YDRg9C80LAKCmBgYHtyfQptMSA8LSBnbG1lcih2aXNfYiB+IGF0dGVtcHRzICsgY291cnNlX2l0ZW1fdHlwZV9kZXNjICsgKDF8Y291cnNlX2l0ZW1fbmFtZSksIGZhbWlseSA9ICJiaW5vbWlhbCIsIGFzc2lnbm1lbnRzKQpzdW1tYXJ5KG0xKQp2aWYobTEpCmBgYAoKIyMgNS4g0JLQu9C40Y/QvdC40LUg0YLQuNC/0LAg0LfQsNC00LDQvdC40Y8g0Lgg0YHQu9C+0LbQvdC+0YHRgtC4INC90LAg0L/QvtGB0LXRidC10L3QuNC1INGE0L7RgNGD0LzQsAoKYGBge3J9Cm0xIDwtIGdsbWVyKHZpc19iIH4gZGlmZmljdWx0eSArIGNvdXJzZV9pdGVtX3R5cGVfZGVzYyArICgxfGNvdXJzZV9pdGVtX25hbWUpLCBmYW1pbHkgPSAiYmlub21pYWwiLCBhc3NpZ25tZW50cykKc3VtbWFyeShtMSkKdmlmKG0xKQpgYGAKCg==</div>
 
 
 </div>
