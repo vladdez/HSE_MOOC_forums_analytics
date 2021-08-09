@@ -286,6 +286,7 @@ m1 <- glmer(vis_b ~ assignment_time + (1|course_item_name), family = "binomial",
 summary(m1)
 m1 <- summary(m1)
 cat(sprintf("Every additional minute of assignemnt interaction increase probability of attendance by %.2f.\n", invlogit(m1$coefficients[2])))
+cat(sprintf("Every additional minute of assignemnt interaction increase odds of attendance by %.2f.\n", exp(m1$coefficients[2])))
 ```
 
 ### Model 10
@@ -295,6 +296,7 @@ m1 <- glm(vis_b ~ attempts, family = "binomial", tw)
 summary(m1)
 m1 <- summary(m1)
 cat(sprintf("Every additional attempt increase probability of attendance by %.4f.\n", invlogit(m1$coefficients[2])))
+cat(sprintf("Every additional attempt interaction increase odds of attendance by %.2f.\n", exp(m1$coefficients[2])))
 ```
 
 ### Model 11
@@ -304,6 +306,7 @@ m1 <- glm(vis_b ~ difficulty, family = "binomial", assignments)
 summary(m1)
 m1 <- summary(m1)
 cat(sprintf("Every additional difficulty point increase probability of attendance by  %.4f.\n", invlogit(m1$coefficients[2])))
+cat(sprintf("Every additional difficulty point increase odds of attendance by %.2f.\n", exp(m1$coefficients[2])))
 ```
 
 
