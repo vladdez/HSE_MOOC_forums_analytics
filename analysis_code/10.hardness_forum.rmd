@@ -54,6 +54,8 @@ assignments <- fread("unzip -cq ../data/assignments.zip")  %>%
 tw <- assignments %>% filter(assignment_time < 116) 
 ```
 
+<!--
+
 ## 1. Влияние выживаемости на посещение форума
 
 ```{r}
@@ -67,26 +69,83 @@ summary(m1)
 ```{r}
 m1 <- glm(vis_b  ~ duration,  family = "binomial", students)
 summary(m1)
+m1 <- summary(m1)
+cat(sprintf("Probability of attendance by increase of duration by 1 day is %.4f.\n", invlogit(m1$coefficients[2])))
 ```
 
-## 3. Влияние времени взаимодействия с заданием на посещение форума
+-->
+
+## 1. Влияние времени взаимодействия с заданием на посещение форума
 
 ```{r}
 m1 <- glmer(vis_b ~ assignment_time + (1|course_item_name), family = "binomial", tw)
 summary(m1)
+m1 <- summary(m1)
+cat(sprintf("Every additional minute of assignemnt interaction increase probability of attendance by %.2f.\n", invlogit(m1$coefficients[2])))
 ```
 
-## 4. Влияние числа попыток на посещение форума
+
+```{r, warning=FALSE}
+assignments  %>%  ggplot(aes(x = assignment_time, y = vis_b)) +
+  geom_point()   +  
+# построит регрессионную линию, сигмоиду
+  geom_smooth(method = "glm", method.args=list(family="binomial")) +   
+# напечатает легенду, название графика и осей  
+  ggtitle("Probability of forum attendance for\ndifferent duration of interaction with assignment") +
+  labs(x = "Duration of interaction with assignment (in minutes)", y = "Forum attendance") +
+# задает цветовую тему графика
+  theme_bw() +  
+# выравнивает название по центру
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+
+
+## 2. Влияние числа попыток на посещение форума
 
 ```{r}
-m1 <- glmer(vis_b ~ attempts + (1|course_item_name), family = "binomial", assignments)
+m1 <- glm(vis_b ~ attempts, family = "binomial", tw)
 summary(m1)
+m1 <- summary(m1)
+cat(sprintf("Every additional attempt increase probability of attendance by %.4f.\n", invlogit(m1$coefficients[2])))
 ```
 
-## 5. Влияние сложности на посещение форума
+```{r, warning=FALSE}
+tw  %>%  ggplot(aes(x = attempts, y = vis_b)) +
+  geom_point()   +  
+# построит регрессионную линию, сигмоиду
+  geom_smooth(method = "glm", method.args=list(family="binomial")) +   
+# напечатает легенду, название графика и осей  
+  ggtitle("Probability of forum attendance\nfor different number of attempts") +
+  labs(x = "Number of attempts", y = "Forum attendance") +
+# задает цветовую тему графика
+  theme_bw() +  
+# выравнивает название по центру
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+## 3. Влияние сложности на посещение форума
 
 ```{r}
-m1 <- glmer(vis_b ~ difficulty + (1|course_item_name), family = "binomial", assignments)
+m1 <- glm(vis_b ~ difficulty, family = "binomial", assignments)
 summary(m1)
+m1 <- summary(m1)
+cat(sprintf("Every additional difficulty point increase probability of attendance by  %.4f.\n", invlogit(m1$coefficients[2])))
 ```
 
+```{r, warning=FALSE}
+assignments  %>%  ggplot(aes(x = difficulty, y = vis_b, color = vis_b)) +
+  geom_point()   +  
+# построит регрессионную линию, сигмоиду
+  geom_smooth(method = "glm", method.args=list(family="binomial")) +   
+# напечатает легенду, название графика и осей  
+  ggtitle("Probability of forum attendance for different assignment difficulty") +
+  labs(x = "Assignment difficulty", y = "Forum attendance", color = "Difficulty") +
+# задает цветовую тему графика
+  theme_bw() +  
+# выравнивает название по центру
+  theme(plot.title = element_text(hjust = 0.5))
+
+```

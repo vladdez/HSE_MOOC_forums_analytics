@@ -1,0 +1,384 @@
+---
+title: "All models"
+output:
+  html_document:
+    code_download: yes
+    fontsize: 8pt
+    highlight: textmate
+    number_sections: no
+    theme: flatly
+    toc: yes
+    toc_float:
+      collapsed: no
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+library(dplyr)
+library(data.table)
+library(lme4)
+library(ggplot2)
+library(pscl) # for odTest
+library(arm)
+library(sjPlot)
+library(rstatix)
+library(car)
+library(glue)
+
+remove_outliers <- function(x, na.rm = TRUE, ...) {
+  qnt <- quantile(x, probs=c(.25, .75), na.rm = na.rm, ...)
+  H <- 1.5 * IQR(x, na.rm = na.rm)
+  y <- x
+  y[x < (qnt[1] - H)] <- NA
+  y[x > (qnt[2] + H)] <- NA
+  y
+}
+
+```
+
+```{r, include=FALSE}
+wd <- getwd()
+
+courses <- fread("../data/courses.csv") %>%
+  mutate(visit_rate = round(vis_learner_b/ student_n, digits = 2), passing_rate = round(passing_rate, digits = 2)) 
+
+students <- fread("../data/students.csv") %>%  mutate(duration = remove_outliers(duration))  
+students$vis_b <- factor(students$vis_b)
+
+assignments <- fread("unzip -cq ../data/assignments.zip")  %>%  
+  mutate(course_item_type_desc = factor(course_item_type_desc), vis_b = ifelse(vis_tw==0, 0, 1), vis_before_attempt_tw_b = ifelse(vis_before_attempt_tw==0, 0, 1), vis_before_attempt_tw_b = factor(vis_before_attempt_tw_b)) %>% 
+  group_by(course_item_id) %>% 
+  mutate(difficulty =  sum(first_attempt == 0) / n()) %>% 
+  ungroup() 
+
+#assignments <- assignments[c(1:10000), ]
+
+tw <- assignments %>% filter(assignment_time < 116) 
+```
+
+## Hypothesis 1
+
+More: file 6.
+
+### Model 1
+
+```{r}
+m10 <- glm(data = assignments, factor(first_attempt) ~ 1, family = "binomial")
+summary(m10)
+```
+
+```{r}
+m1 <- glmer(data = assignments, factor(first_attempt) ~ 1 + (1|hse_user_id) + (1|course_item_name), family = "binomial")
+summary(m1)
+```
+
+```{r}
+sd_proficieny <- data.frame(VarCorr(m1))[5][1, 1]
+sd_difficulty <- data.frame(VarCorr(m1))[5][2, 1]
+coef <- summary(m1)$coef[1] # intercept of m0
+
+```
+
+```{r, echo=FALSE}
+cat(sprintf("Отклонение по студентам (подготовленности) - %.2f.\n", sd_proficieny))
+cat(sprintf("Отклонение по заданиям (сложности) - %.2f.\n", sd_difficulty))
+```
+
+```{r}
+c_proficieny <- c(round(invlogit(coef - sd_proficieny), digits = 2), round(invlogit(coef + sd_proficieny), digits = 2))
+c_difficulty <- c(round(invlogit(coef - sd_proficieny - sd_difficulty), digits = 2), round(invlogit(coef - sd_proficieny + sd_difficulty), digits = 2))
+
+```
+
+```{r, echo=FALSE}
+cat(sprintf("Вероятность  с первой попытки выполнить среднее задание средним студентом - %.2f, beta - %.2f.\n", round(invlogit(coef), digits = 2), coef))
+cat(sprintf("Эта вероятность будет колебаться между %.2f и %.2f  с одним стандартным отклонением квалификации студента ниже и выше.\n", c_proficieny[1], c_proficieny[2] ))
+cat(sprintf("Эта вероятность будет колебаться между %.2f и %.2f  с одним стандартным отклонением сложности задания ниже и выше.\n", c_difficulty[1], c_difficulty[2]))
+```
+
+```{r}
+ll1 <- logLik(m10)*-2
+ll2 <- logLik(m1)*-2
+chi <- ll1[1] - ll2[1]
+df <- 3-1
+
+chi
+df
+# the results are significant if qchisq greater than chi 
+qchisq(p=.0001, df=df, lower.tail=FALSE)
+```
+
+### Model 2
+
+```{r}
+m2 <- glmer(data = assignments, factor(first_attempt) ~ 1 + vis_before_attempt_tw_b * course_item_type_desc + (1|hse_user_id) + (1|course_item_name), family = "binomial")
+summary(m2)
+vif(m2)
+m2 <- summary(m2)
+```
+
+```{r, echo=FALSE}
+cat(sprintf("Вероятность, что студент выполнит задание с первой попытки, если во время взаимодействия с заданием он не посещал форум и это задание по программированию, равна %.4f.\n", invlogit(m2$coefficients[1])))
+cat(sprintf("Вероятность, что студент выполнит задание с первой попытки, если во время взаимодействия с заданием он посещал форум и это задание по программированию, равна %.4f.\n", invlogit((m2$coefficients[1] + m2$coefficients[2]))))
+cat(sprintf("Вероятность, что студент выполнит задание с первой попытки,  если во время взаимодействия с заданием он не посещал форум и это тест, равна %.4f.\n", invlogit((m2$coefficients[1] + m2$coefficients[3]))))
+cat(sprintf("Вероятность, что студент выполнит задание с первой попытки,  если во время взаимодействия с заданием он посещал форум и это тест, равна %.4f.\n", invlogit((m2$coefficients[1] + m2$coefficients[4]))))
+```
+
+
+## Hypothesis 2
+
+More: file 1
+
+### Model 3
+
+```{r}
+m0 <- glmer(factor(vis_b) ~ 1 + (1|course_id),
+            family = binomial,
+            students)
+summary(m0)
+```
+
+```{r, include=FALSE}
+sd <- as.numeric(data.frame(VarCorr(m0))[5])
+m0 <- display(m0)
+coef = m0$coef # intercept of m0
+
+```
+
+Результаты:
+
+
+```{r, echo=FALSE}
+c <- c(round(invlogit(coef - sd), digits = 2), round(invlogit(coef + sd), digits = 2))
+
+cat(sprintf("\n2) Вероятность посещения форума на среднем курсе с учетом стандратного отклонения  равна %.f%% (через обратный логит интерсепта модели m0).\n", round(invlogit(coef), digits = 2) *100))
+cat(sprintf("Эта вероятность будет колебаться между: %d%% и %d%%.\n", c[1] *100, c[2] *100))
+```
+
+
+### Model 4
+
+```{r}
+m0 <- glmer.nb(vis_p ~ 1 + (1|course_id),
+            students)
+summary(m0) 
+```
+
+```{r, include=FALSE}
+sd <- as.numeric(data.frame(VarCorr(m0))[5])
+m0 <- display(m0)
+coef = m0$coef
+c <- c(round(exp(coef - sd), digits = 0), round(exp(coef + sd), digits = 0))
+```
+
+
+```{r , echo=FALSE}
+cat(sprintf("\nCреднее количество страниц, которые посещают студенты на форуме среднего курса: %d\n", round(exp(coef), digit = 0)))
+cat(sprintf("Это количество колеблется между: %d и %d страницами\n", c[1], c[2]))
+```
+
+
+### Model 5
+
+```{r}
+m5 <- glmer(factor(vis_b) ~ is_prog_b + (1|course_id), family = "binomial",
+            students)
+summary(m5)
+
+```
+
+```{r, include=FALSE}
+sd <- as.numeric(data.frame(VarCorr(m5))[5])
+m5 <- display(m5)
+coef = m5$coef
+c <- c(round(invlogit(coef[1] + coef[2] - sd), digits = 2), round(invlogit(coef[1]+ coef[2] + sd), digits = 2))
+```
+
+
+Результаты:
+
+```{r , echo=FALSE}
+cat(sprintf("\nВероятность, посещения форума на курсе без программирования: %.f%%\n", round(invlogit(coef[1]), digit = 3)*100))
+cat(sprintf("Вероятность, посещения форума на курсе с программированием: %.f%%\n", round(invlogit(coef[1] + coef[2]), digits = 3)*100))
+cat(sprintf("Эта вероятность будет колебаться между: %.2f%% и %.2f%%.\n", c[1] *100, c[2] *100))
+```
+
+### Model 6
+
+```{r}
+m6 <- glmer.nb(vis_p ~ is_prog_b + (1|course_id),
+            students)
+summary(m6)
+```
+
+```{r, include=FALSE}
+sd <- as.numeric(data.frame(VarCorr(m6))[5])
+m6 <- display(m6)
+coef = m6$coef
+c <- c(round(exp(coef[1] + coef[2] - sd), digits = 2), round(exp(coef[1]+ coef[2] + sd), digits = 2))
+```
+
+
+Результаты:
+
+
+```{r , echo=FALSE}
+
+cat(sprintf("\nОжидаемое количество страниц на форуме, которые студенты посещают на курсах без программирования: %.2f.\n", round(exp(coef[1]), digit = 2)))
+cat(sprintf("Ожидаемое количество страниц на форуме, которые студенты посещают на курсе с программированием: %.2f.\n", round(exp(coef[1] +coef[2]), digit = 2)))
+cat(sprintf("Эта количество будет колебаться между: %.2f и %.2f.\n", c[1], c[2]))
+cat(sprintf("Ожидаемое количество посещенных страниц форуме на курсах с программированию выше чем на курсах без программирования в %.2f раз.\n", round(exp(coef[2]), digit = 2)))
+
+```
+
+## Hypothesis 3
+
+More: file 2
+
+### Model 7
+
+```{r}
+m7 <- glmer(factor(vis_b) ~ 1 + course_item_type_desc  + (1|course_name),
+            family = binomial,
+            assignments)
+summary(m7)
+```
+
+
+```{r , echo=FALSE}
+sd <- as.numeric(data.frame(VarCorr(m7))[5])
+coef = summary(m7)$coef
+c <- c(round(invlogit(coef[1] + coef[2] - sd), digits = 2), round(invlogit(coef[1]+ coef[2] + sd), digits = 2))
+
+cat(sprintf("\nВероятность, посещения форума на курсе с программированием: %.2f\n", round(invlogit(coef[1]), digit = 3)))
+cat(sprintf("Вероятность, посещения форума на курсе  без программирования: %.2f\n", round(invlogit(coef[1] + coef[2]), digits = 3)))
+cat(sprintf("Эта вероятность будет колебаться между: %.2f и %.2f.\n", c[1], c[2] ))
+```
+
+### Model 8
+
+```{r}
+m8 <- glmer.nb(vis_tw ~ 1 + course_item_type_desc  + (1|course_name),
+            assignments)
+summary(m8)
+```
+
+
+```{r , echo=FALSE}
+sd <- as.numeric(data.frame(VarCorr(m8))[5])
+coef = summary(m8)$coef
+c <- c(round(exp(coef[1] + coef[2] - sd), digits = 2), round(exp(coef[1]+ coef[2] + sd), digits = 2))
+
+cat(sprintf("Количество посещенных страниц форума на курсе с программированием: %.2f\n", round(exp(coef[1]), digit = 3)))
+cat(sprintf("Количество посещенных страниц на курсе без программирования: %.2f\n", round(exp(coef[1] + coef[2]), digits = 3)))
+cat(sprintf("Это количество будет колебаться между: %.2f и %.2f.\n", c[1], c[2] ))
+```
+
+## Hypothesis 4
+
+More: file 10.
+
+### Model 9
+
+```{r}
+m1 <- glmer(vis_b ~ assignment_time + (1|course_item_name), family = "binomial", tw)
+summary(m1)
+m1 <- summary(m1)
+cat(sprintf("Every additional minute of assignemnt interaction increase probability of attendance by %.2f.\n", invlogit(m1$coefficients[2])))
+```
+
+### Model 10
+
+```{r}
+m1 <- glm(vis_b ~ attempts, family = "binomial", tw)
+summary(m1)
+m1 <- summary(m1)
+cat(sprintf("Every additional attempt increase probability of attendance by %.4f.\n", invlogit(m1$coefficients[2])))
+```
+
+### Model 11
+
+```{r}
+m1 <- glm(vis_b ~ difficulty, family = "binomial", assignments)
+summary(m1)
+m1 <- summary(m1)
+cat(sprintf("Every additional difficulty point increase probability of attendance by  %.4f.\n", invlogit(m1$coefficients[2])))
+```
+
+
+## Hypothesis 5
+
+More: file 5
+
+### Model 12
+
+
+```{r}
+m11 <- glmer(attempts ~ course_item_type_desc + (1|course_name), family = "poisson",
+            assignments)
+summary(m11)
+```
+
+```{r, include=FALSE}
+sd <- as.numeric(data.frame(VarCorr(m11))[5])
+coef =  summary(m11)$coefficients
+variance5 <- sd ^2
+
+```
+
+```{r , echo=FALSE}
+
+cat(sprintf("\nКоличество попыток за задание по программированию: %.2f.\n", round(exp(coef[1]), digit = 2)))
+cat(sprintf("Количество попыток за тесты: %.2f.\n", round(exp(coef[1] + coef[2]), digit = 2)))
+cat(sprintf("Количество попыток за задание по программированию выше количества попыток за тест в %.2f раз.\n", round(exp(coef[2]), digit = 2)))
+```
+
+
+### Model 13
+
+
+```{r}
+m12 <- glmer.nb(assignment_time ~ course_item_type_desc + (1|course_name), tw)
+summary(m12)
+
+```
+
+```{r, include=FALSE}
+sd <- as.numeric(data.frame(VarCorr(m12))[5])
+coef =  summary(m12)$coefficients
+
+```
+
+```{r , echo=FALSE}
+
+cat(sprintf("\nКоличество минут на задание по программированию: %.2f.\n", round(exp(coef[1]), digit = 2)))
+cat(sprintf("Количество минут за тесты: %.2f.\n", round(exp(coef[1] + coef[2]), digit = 2)))
+cat(sprintf("Длительность задание по программированию дольше теста в %.2f раз.\n", round(exp(coef[2]), digit = 2)))
+```
+
+### Model 14
+
+```{r}
+m13 <- glmer(difficulty ~ course_item_type_desc + (1|course_name), family = "binomial", assignments)
+summary(m13)
+
+```
+
+```{r, include=FALSE}
+sd <- as.numeric(data.frame(VarCorr(m13))[5])
+coef =  summary(m13)$coefficients
+```
+
+```{r , echo=FALSE}
+
+cat(sprintf("\nСложность задания по программированию: %.2f.\n", round(invlogit(coef[1]), digit = 2)))
+cat(sprintf("Сложность теста: %.2f.\n", round(invlogit(coef[1] + coef[2]), digit = 2)))
+cat(sprintf("Сложность задания по программированию больше теста в %.2f раз.\n", round(invlogit(coef[2]), digit = 2)))
+```
+
+
+## Hypothesis 6
+
+More: file vif.
+
