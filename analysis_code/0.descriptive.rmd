@@ -201,3 +201,22 @@ slugs <- data_frame(courses$course_name, courses$course_slug, courses$student_n)
 write.csv(slugs, file=paste("/home/vovan/Desktop/data/slugs.csv", sep = ""), row.names = FALSE)
 ```
 
+Draws:
+
+```{r}
+tab <- assignments %>% group_by(course_name) %>%
+ mutate(course_item_type_desc = factor(course_item_type_desc), vis_before_attempt_tw_b = ifelse(vis_before_attempt_tw==0, 0, 1), vis_b = ifelse(vis_tw==0, 0, 1), vis_before_attempt_tw_b = factor(vis_before_attempt_tw_b))  %>% group_by(vis_before_attempt_tw_b, course_item_type_desc) %>% summarise(n = n(), prob = sum(first_attempt) / n())
+tab
+probs <- c(0.7186, 0.73, 0.6616, 0.7459)
+tab1 <- cbind(tab, probs) %>% rename(probs = "...5")
+tab1
+
+tab1 %>%  ggplot(aes(y = probs, fill = vis_before_attempt_tw_b, x = course_item_type_desc, label= round(probs, 2))) +
+  geom_col(stat='identity', position = 'dodge', width=0.7) + 
+  labs(x ="Type of an assignment", y = "Probability of Correctness on First Attempt", fill = 'Forum attendance\nbefore attempt') + 
+  scale_fill_brewer(palette = "Pastel2", labels = c("No attendance", "Attendance")) +
+   geom_text( position = position_dodge(width = 0.7), vjust=1.5,  size=3.5) +
+theme_bw() +  
+theme(plot.title = element_text(hjust = 0.5))  
+```
+
