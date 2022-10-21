@@ -34,7 +34,7 @@ remove_outliers <- function(x, na.rm = TRUE, ...) {
 ```{r}
 h1 <- data.frame(vis_before_attempt_tw_b=c("No attendance","Attendance","Attendance","No attendance"), course_item_type_desc = c("quiz","programming","quiz","programming"),
                      results = c(0.7199075, 0.6692041, 0.6863616, 0.6823420))
-colours = c("#599ad3", "#f9a65a", "#9e66ab")
+colours = c("#f9a65a", "#599ad3")
 ggplot(h1, aes(x = course_item_type_desc, y = results, fill = vis_before_attempt_tw_b)) + 
   geom_col(stat='identity', width = 0.6, position = position_dodge(0.7)) +
   geom_text(aes(label=round(results, digits =2)), vjust = 1.5, position=position_dodge(width=0.7), vjust=-0.25) +
