@@ -31,21 +31,41 @@ remove_outliers <- function(x, na.rm = TRUE, ...) {
 
 ## Hypothesis 1
 
+
+1.0431
+
 ```{r}
+windowsFonts(`Segoe UI` = windowsFont('Segoe UI'))
 h1 <- data.frame(vis_before_attempt_tw_b=c("No attendance","Attendance","Attendance","No attendance"), course_item_type_desc = c("quiz","programming","quiz","programming"),
-                     results = c(0.7199075, 0.6692041, 0.6863616, 0.6823420))
+                     results = c(0.7199075, 0.6692041, 0.6863616, 0.6823420)) %>% mutate( 
+                 sdsl = invlogit(results - 0.6324), # variance by students lower
+                 sdsh = invlogit(results + 0.6324), # ans higher
+                 sdcl = invlogit(results - 1.0431), # variance by courses lower
+                 sdch = invlogit(results + 1.0431) # ans higher
+                 )
 colours = c("#f9a65a", "#599ad3")
 ggplot(h1, aes(x = course_item_type_desc, y = results, fill = vis_before_attempt_tw_b)) + 
   geom_col(stat='identity', width = 0.6, position = position_dodge(0.7)) +
-  geom_text(aes(label=round(results, digits =2)), vjust = 1.5, position=position_dodge(width=0.7), vjust=-0.25) +
+  geom_text(aes(label=round(results, digits =2)), vjust = -0.7, position=position_dodge(width=0.4)) +
+  geom_errorbar(aes(ymin=sdsl, ymax=sdsh), width=.2,
+                 position=position_dodge(.8), color = 'red') + 
+  geom_errorbar(aes(ymin=sdcl, ymax=sdch), width=.2,
+                 position=position_dodge(1.1), color = 'blue') + 
+  geom_line(aes(x=course_item_type_desc, y=0, color='accross courses'))+
+  geom_line(aes(x=course_item_type_desc, y=0, color='accross students'))+
+    scale_fill_manual(values=colours) +
   labs(x = "Type of an assignment", y = "Probability of Correctness on First Attempt", 
-       fill="Forum attendance\nduring first attempt")+ 
-  theme(
+       fill="Forum attendance\nduring first attempt", color = 'Variance')+ 
+    scale_y_continuous(breaks = seq(0, 1, len = 5), limits = c(0, 1)) + theme_classic() + 
+    theme(
   axis.title.x = element_text(size=10),
   axis.title.y = element_text(size=10), 
+  text=element_text(family="Segoe UI")
        ) +
-  scale_fill_manual(values=colours) + theme_classic()
-
+    guides(colour = guide_legend(order = 2), 
+              fill = guide_legend(order = 1)) +
+  scale_color_manual(values=c("red","blue")) 
+# colors, fonts
 
 ```
 
