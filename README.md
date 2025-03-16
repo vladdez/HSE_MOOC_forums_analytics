@@ -2,56 +2,51 @@
 
  [Web-site with all information](https://vladdez.github.io/MOOC/about.html)
 
-На платформе Coursera есть около ста онлайн-курсов от НИУ ВШЭ. Я занимаюсь изучением того, как студенты общаются на форумах этих курсов и как это влияет на их обучение. Здесь рассматриваются 60 курсов. 
+There are about one hundred online courses from the Higher School of Economics (HSE) on the Coursera platform. I am studying how students interact on the forums of these courses and how it affects their learning. This report covers 60 courses.
 
-Данные о курсах хранятся в папке data. В папке analyses_code хранятся отчеты в формате html и код отчетов в формате Rmd. Чтобы увидеть html отчет его нужно скачать и открыть в браузере. В папке parser_code хранится код с помощью, которого создавались все переменные.
+Course data is stored in the "data" folder. Reports in HTML format and report code in Rmd format are stored in the "analyses_code" folder. To view the HTML report, it needs to be downloaded and opened in a browser. The "parser_code" folder contains the code used to create all the variables.
 
-Чему посвящены отчеты:
+Reports cover the following topics:
 
   0. **descriptive**
-      - важные статистики;
+      - important statistics;
   1. **vif**
-      -  varianc inflation factor for different models;
+      - variance inflation factor for different models;
 
-### Что влияет на посещение форума?
+### What affects forum visits?
 
   1. **visit_courses**
-      - сколько студентов в среднем посещают форум и каково среднее посещение страниц;
-      - как на это влияет тип курса: есть в нем задания по по программированию, входит ли он в специализацию;
+      - average number of students visiting the forum and the average page views;
+      - how the course type influences this: whether it includes programming assignments or belongs to a specialization;
   2. **visit_assignments**
-      - сколько раз посещают форум *во время выполнения* заданий по программированию и во время выполнения тестов;
-            
-### Почему тип курса влияет на посещение форума?
+      - how often the forum is visited *during the completion* of programming assignments and tests;
+
+### Why does the course type affect forum visits?
 
   3. **survival**
-      - как связаны посещение форума на курсе и выживаемость на курсе;
-      - как связаны тип курса и выживаемость на курсе;
+      - how forum visits are related to course survival;
+      - how the course type is related to course survival;
   4. **duration**
-      - как длительность прохождения курса влияет на посещение форума;
-      - каково стандартное отклонение у посещения форума в зависимости от курса;
-      - как связаны тип курса и длительность прохождения курса;
+      - how course duration affects forum visits;
+      - the standard deviation of forum visits depending on the course;
+      - how the course type is related to course duration;
   5. **attempts_time**
-      - Как разные типы заданий влияют на количество попыток?
-      - Как разные типы заданий влияют на время взаимодействия с заданием?
-  6. **Rasсh model**
-      - как вероятность выполнить задание с первой попытки связана с типом задания и посещением форума в промежуток между началом выполнения задания и первой попыткой;
- 
- ### Как модераторы могут влиять на посещение форума студентами?  
- 
+      - how different assignment types affect the number of attempts;
+      - how different assignment types affect the time spent interacting with the assignment;
+  6. **Rasch model**
+      - how the probability of completing an assignment on the first attempt is related to the assignment type and forum visits during the period between starting the assignment and the first attempt;
+
+### How can moderators influence forum visits by students?
+
   7. **moderators**
-      - как активность модераторов на форуме влияет на активность студентов;
+      - how moderator activity on the forum affects student activity;
 
- 
-### Темы, которые не вошли в основное исследование
-  
+### Topics not included in the main study
+
   8. **certification**
-      - как связано посещение форума с оплатой курса:
-      - как связаны оплата курса, посещение форума и есть ли на курсе задания по программированию;
+      - how forum visits are related to course payment;
+      - how payment, forum visits, and the presence of programming assignments on the course are related;
   9. **grade**
-      - как посещение форума связана с оценкой студентов за курс;
+      - how forum visits are related to students' grades for the course;
 
-
-
-
-Файл Results.drawio визуализирует все связи рассмотренные во всех отчетах (пока без указания силы связи).
-
+The file Results.drawio visualizes all the relationships considered in the reports (currently without indicating the strength of the relationships).
