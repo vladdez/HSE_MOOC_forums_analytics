@@ -1,6 +1,7 @@
 # HSE_MOOC_forums_analytics
 
- [Web-site with all information](https://vladdez.github.io/MOOC/about.html)
+Warning: this is the old version of the study
+The new version is here: [repo](https://github.com/vladdez/MOOC/tree/main) and [website](https://vladdez.github.io/MOOC/about.html)
 
 There are about one hundred online courses from the Higher School of Economics (HSE) on the Coursera platform. I am studying how students interact on the forums of these courses and how it affects their learning. This report covers 60 courses.
 
